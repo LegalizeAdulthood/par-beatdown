@@ -1,4 +1,6 @@
-# par-beatdown Architecture Plan
+# par-beatdown
+
+Extract beats, abuse keyframes, drive ParAnimator timelines.
 
 par-beatdown analyzes an audio track and emits timeline data that can be
 used to drive ParAnimator effects.
@@ -15,7 +17,7 @@ ParAnimator.
 * Extract beat, tempo, energy, and broad spectral information.
 * Emit a neutral timeline file.
 * Allow ParAnimator to use that timeline to drive animation parameters.
-* Keep Marsyas out of ParAnimator itself.
+* Keep audio-analysis tools out of ParAnimator itself.
 * Keep the audio-analysis backend replaceable.
 
 ## Non-goals
@@ -23,34 +25,14 @@ ParAnimator.
 * Real-time audio analysis.
 * Live audio playback.
 * Audio/video muxing.
-* Tight coupling to Marsyas APIs inside ParAnimator.
+* Tight coupling to any particular audio-analysis framework.
 * Musicological accuracy.
 * Pretending FFT bins are emotions.
-
-## Repository
-
-Suggested repository name:
-
-```
-LegalizeAdulthood/par-beatdown
-```
-
-Suggested GitHub description:
-
-```
-Extract beats, abuse keyframes, drive ParAnimator timelines.
-```
-
-Primary executable:
-
-```
-par-beatdown
-```
 
 ## System Overview
 
 ```
-song.wav
+song.mp3
   -> par-beatdown
   -> song.music.json
   -> paranimator
@@ -58,60 +40,220 @@ song.wav
   -> external video/audio muxing
 ```
 
-par-beatdown is a separate command-line tool.  It may use Marsyas internally,
-but ParAnimator should only consume the generated timeline data.
+par-beatdown is a separate command-line tool.  It invokes or uses external
+audio-analysis tools, then converts their output into a neutral timeline file.
+
+ParAnimator should consume only the generated timeline data.
 
 The important boundary is:
 
 ```
-Marsyas-linked GPL tool  ->  neutral JSON data  ->  ParAnimator
+audio-analysis backend  ->  neutral JSON data  ->  ParAnimator
 ```
 
-## Licensing Boundary
+ParAnimator should not know whether the analysis came from Sonic Annotator,
+Marsyas, aubio, Essentia, a hand-authored file, or something found under a
+desk with a 2007 timestamp.
 
-Marsyas is GPL-2.0-or-later.  A tool that links against Marsyas should be
-treated as GPL-2.0-or-later.
+## Recommended Backend Strategy
 
-ParAnimator should not link against Marsyas.  Instead, ParAnimator consumes
-the JSON timeline emitted by par-beatdown.
+The first backend should be Sonic Annotator.
 
-This keeps the architecture simple:
+Sonic Annotator is a batch feature-extraction tool.  It runs Vamp audio
+analysis plugins on audio files and writes feature results in selectable
+formats.
+
+That is almost exactly the shape needed here:
 
 ```
-par-beatdown       GPL-2.0-or-later, because it uses Marsyas
-paranimator        GPL-3.0, no Marsyas dependency
-*.music.json       data interchange
+audio file
+  -> Sonic Annotator
+  -> feature output
+  -> par-beatdown conversion
+  -> song.music.json
 ```
 
-The JSON output is data, not Marsyas code.
+This keeps par-beatdown small at first.  It does not need to become an audio
+decoder, a DSP framework, or a museum for research code.
 
-## Components
-
-### 1. Audio Analyzer
-
-Responsible for reading an audio file and extracting coarse timeline features.
+## Backend Candidates
 
 Initial backend:
 
 ```
-Marsyas
-```
-
-Future possible backends:
-
-```
-Aubio
-Essentia
 Sonic Annotator
+```
+
+Possible later backends:
+
+```
+Marsyas
+aubio
+Essentia
+direct Vamp plugin hosting
 hand-authored JSON
 some regrettable script from 2007
 ```
 
-The rest of the architecture should not care which analyzer produced the file.
+Sonic Annotator should be treated as the default first implementation.
 
-### 2. Timeline Writer
+Marsyas remains useful as an experimental or alternate backend, but should not
+be the foundation unless it provides a specific feature that cannot be obtained
+more conveniently from Vamp plugins.
 
-Converts extracted audio features into a normalized JSON timeline.
+## Licensing Boundary
+
+par-beatdown may depend on GPL tools.  That is acceptable because par-beatdown
+is a separate tool and ParAnimator consumes only the generated JSON timeline.
+
+The architecture should remain:
+
+```
+par-beatdown       GPL-compatible audio analysis and timeline generator
+paranimator        no direct dependency on audio-analysis backends
+*.music.json       data interchange
+```
+
+The JSON output is data, not code from the analysis backend.
+
+ParAnimator should not link against Sonic Annotator, Marsyas, aubio, Essentia,
+or any other audio-analysis backend.  It should read timeline files.
+
+## Input Audio
+
+par-beatdown should accept compressed and uncompressed audio files.
+
+Expected initial input formats depend on the backend, but the design should
+assume common audio files such as:
+
+```
+MP3
+Ogg
+Opus
+WAV
+AIFF
+FLAC, if supported by the selected backend
+```
+
+Internally, audio analysis operates on decoded PCM samples.  The public design
+should not care whether the original file was MP3 or WAV.
+
+Conceptually:
+
+```
+input audio file
+  -> decode / resample / downmix
+  -> PCM analysis stream
+  -> feature extraction
+  -> song.music.json
+```
+
+If a backend does not support a file type directly, par-beatdown may use an
+external conversion step.
+
+For example:
+
+```
+ffmpeg -i song.mp3 -ar 44100 -ac 1 temporary-analysis.wav
+```
+
+Then:
+
+```
+temporary-analysis.wav
+  -> analysis backend
+  -> song.music.json
+```
+
+The timeline should still record the original audio file, not just the
+temporary analysis file.
+
+## Command Line
+
+Initial command:
+
+```
+par-beatdown song.mp3 -o song.music.json --fps 30
+```
+
+Equivalent WAV example:
+
+```
+par-beatdown song.wav -o song.music.json --fps 30
+```
+
+With optional sync offset:
+
+```
+par-beatdown song.mp3 -o song.music.json --fps 30 --offset 0.000
+```
+
+Possible later options:
+
+```
+--backend sonic-annotator
+--backend marsyas
+--backend aubio
+--normalize track
+--normalize none
+--hop-size 512
+--window-size 2048
+--analysis-rate 44100
+--analysis-channels mono
+--dump-debug-csv song.features.csv
+--keep-temporary-files
+```
+
+## Components
+
+### 1. Audio Input Stage
+
+Responsible for locating, validating, and decoding the source audio.
+
+Responsibilities:
+
+* Accept the source filename.
+* Determine file type where practical.
+* Preserve original filename in the timeline metadata.
+* Decode, downmix, or resample as needed by the selected backend.
+* Account for manual audio offset.
+
+This stage exists because MP3 files exist, and civilization has not recovered.
+
+### 2. Backend Runner
+
+Responsible for invoking the selected analysis backend.
+
+For the initial Sonic Annotator backend, this means:
+
+* Locate sonic-annotator.
+* Locate required Vamp plugins.
+* Run the configured transforms.
+* Capture CSV or other feature output.
+* Report useful errors when transforms or plugins are missing.
+
+The backend runner should be isolated from the rest of the code.
+
+The rest of par-beatdown should see backend output as feature data, not as
+Sonic Annotator trivia.
+
+### 3. Feature Importer
+
+Responsible for converting backend-specific output into internal feature
+streams.
+
+For Sonic Annotator, this probably means parsing CSV output.
+
+Internal representation should distinguish:
+
+* sparse events
+* continuous features
+* metadata
+* confidence values, if available
+
+### 4. Timeline Writer
+
+Responsible for writing normalized JSON timeline data.
 
 Responsibilities:
 
@@ -119,9 +261,9 @@ Responsibilities:
 * Normalize feature values.
 * Emit sparse events.
 * Emit continuous per-frame or per-hop features.
-* Preserve enough metadata for synchronization.
+* Preserve metadata for synchronization and debugging.
 
-### 3. ParAnimator Timeline Reader
+### 5. ParAnimator Timeline Reader
 
 A future ParAnimator feature.
 
@@ -133,34 +275,11 @@ Responsibilities:
 * Convert events into pulses/envelopes.
 * Apply bindings to current animation parameters.
 
-ParAnimator should not know about Marsyas.
+ParAnimator should not know about Sonic Annotator.
+
+It should not know about Marsyas.
 
 It should know only about external timeline data.
-
-## Command Line
-
-Initial command:
-
-```
-par-beatdown song.wav -o song.music.json --fps 30
-```
-
-With optional offset:
-
-```
-par-beatdown song.wav -o song.music.json --fps 30 --offset 0.000
-```
-
-Possible later options:
-
-```
---normalize track
---normalize none
---hop-size 512
---window-size 2048
---backend marsyas
---dump-debug-csv song.features.csv
-```
 
 ## Timeline File Format
 
@@ -173,11 +292,16 @@ Example:
   "version": 1,
   "generator": {
     "name": "par-beatdown",
-    "backend": "marsyas"
+    "backend": "sonic-annotator"
   },
   "audio": {
-    "file": "song.wav",
+    "file": "song.mp3",
+    "codec": "mp3",
     "duration": 184.2,
+    "source_channels": 2,
+    "source_sample_rate": 44100,
+    "analysis_channels": 1,
+    "analysis_sample_rate": 44100,
     "offset": 0.0
   },
   "timeline": {
@@ -283,6 +407,53 @@ frame = round((time_seconds + audio_offset_seconds) * fps)
 
 The offset exists because audio/video sync always finds a way to be annoying.
 
+MP3 encoder delay and padding may create small sync disagreements between
+tools.  The offset field exists so this can be corrected without lying to the
+timeline.
+
+## Sonic Annotator Integration
+
+The initial implementation should treat Sonic Annotator as an external command.
+
+Conceptual flow:
+
+```
+par-beatdown
+  -> run sonic-annotator with selected transforms
+  -> collect feature output
+  -> normalize and frame-align features
+  -> write song.music.json
+```
+
+The user should not have to read Sonic Annotator output directly unless
+something has already gone wrong.
+
+par-beatdown should eventually provide named presets such as:
+
+```
+beats
+energy
+spectrum
+full
+```
+
+A preset should expand to one or more Sonic Annotator transforms.
+
+For example:
+
+```
+par-beatdown song.mp3 --preset beats -o song.music.json
+```
+
+or:
+
+```
+par-beatdown song.mp3 --preset full -o song.music.json
+```
+
+The exact transform files and plugin choices can evolve without changing the
+timeline format.
+
 ## ParAnimator Integration
 
 ParAnimator should gain support for external timelines.
@@ -292,7 +463,7 @@ Example animation configuration:
 ```
 {
   "music": {
-    "file": "song.wav",
+    "file": "song.mp3",
     "analysis": "song.music.json",
     "offset": 0.000
   }
@@ -399,14 +570,14 @@ Music is an overlay.
 
 ## Recommended First Implementation
 
-### Phase 1: Standalone Analyzer
+### Phase 1: Sonic Annotator Runner
 
-Implement par-beatdown.
+Implement par-beatdown as a wrapper around Sonic Annotator.
 
 Input:
 
 ```
-song.wav
+song.mp3
 ```
 
 Output:
@@ -420,12 +591,27 @@ Extract only:
 ```
 tempo
 beat events
-rms
+rms or amplitude envelope
 ```
 
 This is enough to prove the pipeline.
 
-### Phase 2: Keyframe Preprocessor
+The first version should be boring.  Boring is how software earns the right to
+become weird later.
+
+### Phase 2: CSV Import and Timeline Writer
+
+Parse Sonic Annotator output and write the neutral JSON timeline.
+
+At this phase, the important work is:
+
+* stable parsing
+* stable frame conversion
+* stable metadata
+* clear error messages
+* no attempt to solve music theory
+
+### Phase 3: Keyframe Preprocessor
 
 Before modifying ParAnimator, add a small converter:
 
@@ -451,7 +637,7 @@ This keeps everything inspectable.
 
 It also avoids adding abstractions before knowing which ones are not stupid.
 
-### Phase 3: Native External Timeline Support
+### Phase 4: Native External Timeline Support
 
 Add ParAnimator support for:
 
@@ -466,7 +652,7 @@ clamping
 
 At this point, the keyframe preprocessor becomes optional.
 
-### Phase 4: More Features
+### Phase 5: More Features
 
 Add:
 
@@ -479,6 +665,7 @@ beat phase
 bar events
 section markers
 debug CSV output
+backend selection
 ```
 
 ## Suggested Effects
@@ -524,25 +711,45 @@ Prefer song.beatdown.json if being cute is temporarily allowed.
 ## Example Workflow
 
 ```
-par-beatdown song.wav --fps 30 -o song.music.json
+par-beatdown song.mp3 --fps 30 -o song.music.json
 
 music2keyframes animation.json song.music.json -o animation.music.json
 
 paranimator animation.music.json
 
-ffmpeg -r 30 -i frames/frame%05d.png -i song.wav \
+ffmpeg -r 30 -i frames/frame%05d.png -i song.mp3 \
   -shortest -c:v libx264 -pix_fmt yuv420p final.mp4
 ```
+
+## Error Handling
+
+par-beatdown should produce useful errors for common failures:
+
+* Sonic Annotator is not installed.
+* Required Vamp plugin is missing.
+* Requested preset cannot be resolved.
+* Audio file cannot be decoded.
+* Backend output cannot be parsed.
+* Feature stream is empty.
+* Timeline FPS is missing or invalid.
+
+Errors should explain the missing thing and the command or setting likely
+needed to fix it.
+
+No one needs a stack trace because a plugin named something like
+vamp:qm-vamp-plugins:qm-tempotracker:beats was not installed.  The name is
+punishment enough.
 
 ## Architecture Rule
 
 ParAnimator should consume neutral timeline data.
 
+It should not consume Sonic Annotator.
+
 It should not consume Marsyas.
 
-It should not know what Marsyas is.
+It should not know what a Vamp plugin is.
 
 It should not care.
 
 That is how software avoids becoming archaeology.
-
