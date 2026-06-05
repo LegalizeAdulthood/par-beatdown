@@ -16,4 +16,5 @@ if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
 
     add_par_beatdown_gold_test(write-tracker-source source)
     add_par_beatdown_gold_test(write-module-structure module)
+    add_par_beatdown_gold_test(write-timeline-clock timeline)
 endif()

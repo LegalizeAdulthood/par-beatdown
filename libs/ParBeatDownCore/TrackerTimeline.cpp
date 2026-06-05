@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -55,6 +56,16 @@ std::string list_value(const std::vector<std::string> &items, int index)
                                                                         : std::string{};
 }
 
+bool is_valid_time(double seconds)
+{
+    return std::isfinite(seconds) && seconds >= 0.0;
+}
+
+int frame_at(double seconds, const TrackerTimelineSettings &settings)
+{
+    return static_cast<int>(std::llround((seconds + settings.offset_seconds) * settings.fps));
+}
+
 nlohmann::ordered_json make_source_json(const TrackerSourceInfo *source)
 {
     if (source == nullptr)
@@ -68,9 +79,39 @@ nlohmann::ordered_json make_source_json(const TrackerSourceInfo *source)
         {"selected_subsong", source->selected_subsong}, {"subsong_count", source->subsong_count}};
 }
 
-nlohmann::ordered_json make_module_json(const TrackerModuleInfo *module)
+nlohmann::ordered_json make_order_json(const TrackerOrderInfo &order, const TrackerOrderClockInfo *clock)
 {
-    if (module == nullptr)
+    auto output = nlohmann::ordered_json{
+        {"index", order.index}, {"pattern", order.pattern}, {"name", order.name}, {"kind", order.kind}};
+    if (clock != nullptr)
+    {
+        output["time_seconds"] = clock->time_seconds;
+        output["frame"] = clock->frame;
+    }
+    return output;
+}
+
+nlohmann::ordered_json make_order_json(const TrackerOrderClockInfo &clock)
+{
+    return nlohmann::ordered_json{{"index", clock.index}, {"pattern", clock.pattern}, {"name", ""},
+        {"kind", clock.kind}, {"time_seconds", clock.time_seconds}, {"frame", clock.frame}};
+}
+
+const TrackerOrderClockInfo *find_order_clock(const TrackerClockInfo *clock, int order)
+{
+    if (clock == nullptr)
+    {
+        return nullptr;
+    }
+
+    const auto found = std::find_if(clock->orders.begin(), clock->orders.end(),
+        [order](const TrackerOrderClockInfo &item) { return item.index == order; });
+    return found == clock->orders.end() ? nullptr : &*found;
+}
+
+nlohmann::ordered_json make_module_json(const TrackerModuleInfo *module, const TrackerClockInfo *clock)
+{
+    if (module == nullptr && clock == nullptr)
     {
         return nlohmann::ordered_json{{"channel_count", 0}, {"order_count", 0}, {"pattern_count", 0},
             {"instrument_count", 0}, {"sample_count", 0}, {"metadata", nlohmann::ordered_json::array()},
@@ -79,37 +120,85 @@ nlohmann::ordered_json make_module_json(const TrackerModuleInfo *module)
     }
 
     auto metadata = nlohmann::ordered_json::array();
-    for (const auto &item : module->metadata)
+    if (module != nullptr)
     {
-        metadata.push_back(nlohmann::ordered_json{{"key", item.key}, {"value", item.value}});
+        for (const auto &item : module->metadata)
+        {
+            metadata.push_back(nlohmann::ordered_json{{"key", item.key}, {"value", item.value}});
+        }
     }
 
     auto subsongs = nlohmann::ordered_json::array();
-    for (const auto &subsong : module->subsongs)
+    if (module != nullptr)
     {
-        subsongs.push_back(nlohmann::ordered_json{{"index", subsong.index}, {"name", subsong.name},
-            {"restart_order", subsong.restart_order}, {"restart_row", subsong.restart_row}});
+        for (const auto &subsong : module->subsongs)
+        {
+            subsongs.push_back(nlohmann::ordered_json{{"index", subsong.index}, {"name", subsong.name},
+                {"restart_order", subsong.restart_order}, {"restart_row", subsong.restart_row}});
+        }
     }
 
     auto orders = nlohmann::ordered_json::array();
-    for (const auto &order : module->orders)
+    if (module != nullptr)
     {
-        orders.push_back(nlohmann::ordered_json{
-            {"index", order.index}, {"pattern", order.pattern}, {"name", order.name}, {"kind", order.kind}});
+        for (const auto &order : module->orders)
+        {
+            orders.push_back(make_order_json(order, find_order_clock(clock, order.index)));
+        }
+    }
+    else if (clock != nullptr)
+    {
+        for (const auto &order : clock->orders)
+        {
+            orders.push_back(make_order_json(order));
+        }
     }
 
     auto patterns = nlohmann::ordered_json::array();
-    for (const auto &pattern : module->patterns)
+    if (module != nullptr)
     {
-        patterns.push_back(
-            nlohmann::ordered_json{{"index", pattern.index}, {"name", pattern.name}, {"row_count", pattern.row_count},
-                {"rows_per_beat", pattern.rows_per_beat}, {"rows_per_measure", pattern.rows_per_measure}});
+        for (const auto &pattern : module->patterns)
+        {
+            patterns.push_back(nlohmann::ordered_json{{"index", pattern.index}, {"name", pattern.name},
+                {"row_count", pattern.row_count}, {"rows_per_beat", pattern.rows_per_beat},
+                {"rows_per_measure", pattern.rows_per_measure}});
+        }
     }
 
-    return nlohmann::ordered_json{{"channel_count", module->channel_count}, {"order_count", module->order_count},
-        {"pattern_count", module->pattern_count}, {"instrument_count", module->instrument_count},
-        {"sample_count", module->sample_count}, {"metadata", metadata}, {"subsongs", subsongs}, {"orders", orders},
-        {"patterns", patterns}};
+    return nlohmann::ordered_json{{"channel_count", module == nullptr ? 0 : module->channel_count},
+        {"order_count", module == nullptr ? static_cast<int>(orders.size()) : module->order_count},
+        {"pattern_count", module == nullptr ? 0 : module->pattern_count},
+        {"instrument_count", module == nullptr ? 0 : module->instrument_count},
+        {"sample_count", module == nullptr ? 0 : module->sample_count}, {"metadata", metadata}, {"subsongs", subsongs},
+        {"orders", orders}, {"patterns", patterns}};
+}
+
+nlohmann::ordered_json make_timeline_json(const TrackerClockInfo *clock)
+{
+    if (clock == nullptr)
+    {
+        return nlohmann::ordered_json{{"duration_seconds", 0.0}, {"frames", 0}, {"first_frame", 0}, {"last_frame", -1}};
+    }
+
+    return nlohmann::ordered_json{{"duration_seconds", clock->timeline.duration_seconds},
+        {"frames", clock->timeline.frames}, {"first_frame", clock->timeline.first_frame},
+        {"last_frame", clock->timeline.last_frame}};
+}
+
+nlohmann::ordered_json make_events_json(const TrackerClockInfo *clock)
+{
+    auto events = nlohmann::ordered_json::array();
+    if (clock == nullptr)
+    {
+        return events;
+    }
+
+    for (const auto &event : clock->events)
+    {
+        events.push_back(nlohmann::ordered_json{{"kind", event.kind}, {"time_seconds", event.time_seconds},
+            {"frame", event.frame}, {"order", event.order}, {"pattern", event.pattern}, {"row", event.row}});
+    }
+    return events;
 }
 
 nlohmann::ordered_json make_diagnostics_json(const TrackerSourceInfo *source)
@@ -127,8 +216,8 @@ nlohmann::ordered_json make_diagnostics_json(const TrackerSourceInfo *source)
         {"warnings", nlohmann::ordered_json::array()}, {"unsupported", nlohmann::ordered_json::array()}, {"log", log}};
 }
 
-std::string dump_tracker_timeline(
-    const TrackerTimelineSettings &settings, const TrackerSourceInfo *source, const TrackerModuleInfo *module)
+std::string dump_tracker_timeline(const TrackerTimelineSettings &settings, const TrackerSourceInfo *source,
+    const TrackerModuleInfo *module, const TrackerClockInfo *clock)
 {
     nlohmann::ordered_json root{{"schema", tracker_timeline_schema}, {"version", tracker_timeline_schema_version},
         {"generator",
@@ -139,10 +228,8 @@ std::string dump_tracker_timeline(
             nlohmann::ordered_json{{"fps", settings.fps}, {"sample_rate", settings.sample_rate},
                 {"channels", settings.channels}, {"offset_seconds", settings.offset_seconds},
                 {"feature_hop_seconds", settings.feature_hop_seconds}}},
-        {"module", make_module_json(module)},
-        {"timeline",
-            nlohmann::ordered_json{{"duration_seconds", 0.0}, {"frames", 0}, {"first_frame", 0}, {"last_frame", -1}}},
-        {"events", nlohmann::ordered_json::array()}, {"features", nlohmann::ordered_json::array()},
+        {"module", make_module_json(module, clock)}, {"timeline", make_timeline_json(clock)},
+        {"events", make_events_json(clock)}, {"features", nlohmann::ordered_json::array()},
         {"diagnostics", make_diagnostics_json(source)}};
 
     return root.dump(2) + "\n";
@@ -156,8 +243,10 @@ struct TrackerModule::Impl
 
     std::string metadata_value(const std::vector<std::string> &keys, const std::string &key) const;
     std::string order_kind(int order) const;
+    int pattern_row_count(int pattern) const;
     void load_source_info();
     void load_module_info();
+    TrackerClockInfo make_clock_info(const TrackerTimelineSettings &settings) const;
 
     std::string file_;
     std::uintmax_t size_bytes_;
@@ -194,6 +283,15 @@ std::string TrackerModule::Impl::order_kind(int order) const
         return "stop";
     }
     return "pattern";
+}
+
+int TrackerModule::Impl::pattern_row_count(int pattern) const
+{
+    if (pattern < 0 || pattern >= module_info_.pattern_count)
+    {
+        return 0;
+    }
+    return module_info_.patterns[static_cast<std::size_t>(pattern)].row_count;
 }
 
 void TrackerModule::Impl::load_source_info()
@@ -248,6 +346,53 @@ void TrackerModule::Impl::load_module_info()
     }
 }
 
+TrackerClockInfo TrackerModule::Impl::make_clock_info(const TrackerTimelineSettings &settings) const
+{
+    TrackerClockInfo info;
+    if (!is_valid_time(source_.duration_seconds))
+    {
+        return info;
+    }
+
+    info.timeline.duration_seconds = source_.duration_seconds;
+    info.timeline.first_frame = 0;
+    info.timeline.last_frame = std::max(info.timeline.first_frame, frame_at(source_.duration_seconds, settings));
+    info.timeline.frames = info.timeline.last_frame - info.timeline.first_frame + 1;
+
+    for (const auto &order : module_info_.orders)
+    {
+        if (order.kind != "pattern")
+        {
+            continue;
+        }
+
+        const auto order_time = module_.get_time_at_position(order.index, 0);
+        if (!is_valid_time(order_time))
+        {
+            continue;
+        }
+
+        const auto order_frame = frame_at(order_time, settings);
+        info.orders.push_back(TrackerOrderClockInfo{order.index, order.pattern, order.kind, order_time, order_frame});
+        info.events.push_back(TrackerTimelineEvent{"order", order_time, order_frame, order.index, order.pattern, 0});
+        info.events.push_back(TrackerTimelineEvent{"pattern", order_time, order_frame, order.index, order.pattern, 0});
+
+        const auto rows = pattern_row_count(order.pattern);
+        for (int row = 0; row < rows; ++row)
+        {
+            const auto row_time = module_.get_time_at_position(order.index, row);
+            if (!is_valid_time(row_time))
+            {
+                continue;
+            }
+            info.events.push_back(
+                TrackerTimelineEvent{"row", row_time, frame_at(row_time, settings), order.index, order.pattern, row});
+        }
+    }
+
+    return info;
+}
+
 TrackerModule::TrackerModule(std::string file)
 try :
     impl_{std::make_unique<Impl>(std::move(file))}
@@ -274,19 +419,26 @@ const TrackerModuleInfo &TrackerModule::module_info() const
     return impl_->module_info_;
 }
 
-std::string tracker_timeline_schema_shell(const TrackerTimelineSettings &settings)
+TrackerClockInfo TrackerModule::clock_info(const TrackerTimelineSettings &settings)
 {
-    return dump_tracker_timeline(settings, nullptr, nullptr);
+    return impl_->make_clock_info(settings);
 }
 
-std::string tracker_timeline_json(const TrackerModule &module, const TrackerTimelineSettings &settings)
+std::string tracker_timeline_schema_shell(const TrackerTimelineSettings &settings)
 {
-    return dump_tracker_timeline(settings, &module.source(), settings.include_module ? &module.module_info() : nullptr);
+    return dump_tracker_timeline(settings, nullptr, nullptr, nullptr);
+}
+
+std::string tracker_timeline_json(TrackerModule &module, const TrackerTimelineSettings &settings)
+{
+    const auto clock = settings.include_timeline ? module.clock_info(settings) : TrackerClockInfo{};
+    return dump_tracker_timeline(settings, &module.source(), settings.include_module ? &module.module_info() : nullptr,
+        settings.include_timeline ? &clock : nullptr);
 }
 
 std::string tracker_timeline_from_file(const std::string &file, const TrackerTimelineSettings &settings)
 {
-    const TrackerModule module{file};
+    TrackerModule module{file};
     return tracker_timeline_json(module, settings);
 }
 

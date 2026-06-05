@@ -21,6 +21,7 @@ struct TrackerTimelineSettings
     double offset_seconds{0.0};
     double feature_hop_seconds{1.0 / 30.0};
     bool include_module{true};
+    bool include_timeline{false};
 };
 
 struct TrackerSourceInfo
@@ -79,6 +80,40 @@ struct TrackerModuleInfo
     std::vector<TrackerPatternInfo> patterns;
 };
 
+struct TrackerTimelineInfo
+{
+    double duration_seconds{0.0};
+    int frames{0};
+    int first_frame{0};
+    int last_frame{-1};
+};
+
+struct TrackerOrderClockInfo
+{
+    int index{0};
+    int pattern{0};
+    std::string kind;
+    double time_seconds{0.0};
+    int frame{0};
+};
+
+struct TrackerTimelineEvent
+{
+    std::string kind;
+    double time_seconds{0.0};
+    int frame{0};
+    int order{0};
+    int pattern{0};
+    int row{0};
+};
+
+struct TrackerClockInfo
+{
+    TrackerTimelineInfo timeline;
+    std::vector<TrackerOrderClockInfo> orders;
+    std::vector<TrackerTimelineEvent> events;
+};
+
 class TrackerModule
 {
 public:
@@ -91,6 +126,7 @@ public:
 
     const TrackerSourceInfo &source() const;
     const TrackerModuleInfo &module_info() const;
+    TrackerClockInfo clock_info(const TrackerTimelineSettings &settings);
 
 private:
     struct Impl;
@@ -98,7 +134,7 @@ private:
 };
 
 std::string tracker_timeline_schema_shell(const TrackerTimelineSettings &settings = {});
-std::string tracker_timeline_json(const TrackerModule &module, const TrackerTimelineSettings &settings = {});
+std::string tracker_timeline_json(TrackerModule &module, const TrackerTimelineSettings &settings = {});
 std::string tracker_timeline_from_file(const std::string &file, const TrackerTimelineSettings &settings = {});
 
 } // namespace par_beatdown

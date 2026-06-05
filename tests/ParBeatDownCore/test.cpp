@@ -40,7 +40,7 @@ TEST(ParBeatDownCore, trackerTimelineSchemaShell)
 TEST(ParBeatDownCore, trackerModuleLoadsSource)
 {
     const auto file = std::string{PAR_BEATDOWN_TEST_DATA_DIR} + "/my_neighbors_kid_is_an_internet_addict.xm";
-    const par_beatdown::TrackerModule module{file};
+    par_beatdown::TrackerModule module{file};
     const auto &source = module.source();
 
     ASSERT_EQ(file, source.file);
@@ -64,7 +64,7 @@ TEST(ParBeatDownCore, trackerModuleLoadsSource)
 TEST(ParBeatDownCore, trackerModuleLoadsStaticStructure)
 {
     const auto file = std::string{PAR_BEATDOWN_TEST_DATA_DIR} + "/my_neighbors_kid_is_an_internet_addict.xm";
-    const par_beatdown::TrackerModule module{file};
+    par_beatdown::TrackerModule module{file};
     const auto &source = module.source();
     const auto &info = module.module_info();
 
@@ -94,7 +94,7 @@ TEST(ParBeatDownCore, trackerModuleLoadsStaticStructure)
 TEST(ParBeatDownCore, trackerTimelineCanOmitOptionalModule)
 {
     const auto file = std::string{PAR_BEATDOWN_TEST_DATA_DIR} + "/my_neighbors_kid_is_an_internet_addict.xm";
-    const par_beatdown::TrackerModule module{file};
+    par_beatdown::TrackerModule module{file};
     par_beatdown::TrackerTimelineSettings settings;
     settings.include_module = false;
 
@@ -105,5 +105,31 @@ TEST(ParBeatDownCore, trackerTimelineCanOmitOptionalModule)
     ASSERT_TRUE(json.at("module").at("metadata").empty());
     ASSERT_TRUE(json.at("module").at("orders").empty());
     ASSERT_TRUE(json.at("module").at("patterns").empty());
+}
+
+TEST(ParBeatDownCore, trackerTimelineBuildsClock)
+{
+    const auto file = std::string{PAR_BEATDOWN_TEST_DATA_DIR} + "/my_neighbors_kid_is_an_internet_addict.xm";
+    par_beatdown::TrackerModule module{file};
+    par_beatdown::TrackerTimelineSettings settings;
+    settings.include_module = false;
+    settings.include_timeline = true;
+
+    const auto clock = module.clock_info(settings);
+    ASSERT_GT(clock.timeline.duration_seconds, 0.0);
+    ASSERT_EQ(0, clock.timeline.first_frame);
+    ASSERT_GT(clock.timeline.last_frame, clock.timeline.first_frame);
+    ASSERT_EQ(clock.timeline.last_frame + 1, clock.timeline.frames);
+    ASSERT_FALSE(clock.orders.empty());
+    ASSERT_FALSE(clock.events.empty());
+
+    const auto json = nlohmann::json::parse(par_beatdown::tracker_timeline_json(module, settings));
+    ASSERT_EQ(clock.timeline.frames, json.at("timeline").at("frames"));
+    ASSERT_FALSE(json.at("module").at("orders").empty());
+    ASSERT_TRUE(json.at("module").at("orders").at(0).contains("time_seconds"));
+    ASSERT_TRUE(json.at("module").at("orders").at(0).contains("frame"));
+    ASSERT_EQ("order", json.at("events").at(0).at("kind"));
+    ASSERT_EQ("pattern", json.at("events").at(1).at("kind"));
+    ASSERT_EQ("row", json.at("events").at(2).at("kind"));
 }
 #endif

@@ -78,6 +78,7 @@ Current include sections:
 
 * `source` writes only global fields
 * `module` also writes `module`
+* `timeline` also writes timeline clock data and timing events
 
 ## Schema V1
 
@@ -396,48 +397,7 @@ Diagnostics {
 
 ## Implementation Slices
 
-### Slice 3: Timeline Clock
-
-Convert tracker positions to seconds and frames.
-
-The slice should:
-
-* add fps and offset options to the core API
-* calculate `timeline.frames`
-* calculate `timeline.first_frame`
-* calculate `timeline.last_frame`
-* add `time_seconds` and `frame` to order entries
-* create `order`, `pattern`, and `row` events
-* omit positions with negative or infinite time
-
-The integration test should:
-
-* add `gold-write-timeline-clock.json`
-* run the tool with `--include timeline`
-* validate `timeline.frames`, `first_frame`, and `last_frame`
-* validate order `time_seconds` and `frame` fields
-* validate generated `order`, `pattern`, and `row` events
-
-Use these libopenmpt calls:
-
-* `get_time_at_position`
-* `set_position_order_row`
-* `get_current_order`
-* `get_current_pattern`
-* `get_current_row`
-* `get_current_speed`
-* `get_current_tempo2`
-
-Frame conversion:
-
-```
-frame = round((time_seconds + offset_seconds) * fps)
-```
-
-Remove this slice when row and order events have stable frame values in
-unit and integration tests.
-
-### Slice 4: Pattern Command Events
+### Slice 3: Pattern Command Events
 
 Convert tracker cell commands into neutral events.
 
@@ -471,7 +431,7 @@ instead of guessing.
 Remove this slice when note and effect events are generated from the XM
 test file and covered by unit and integration tests.
 
-### Slice 5: Rendered Feature Frames
+### Slice 4: Rendered Feature Frames
 
 Add optional PCM-derived feature frames.
 
@@ -502,7 +462,7 @@ Use these libopenmpt calls:
 Remove this slice when `features` is populated and covered by unit and
 integration tests.
 
-### Slice 6: Command Line Options
+### Slice 5: Command Line Options
 
 Extend the minimal tracker writer in `tools/par-beatdown`.
 
@@ -532,7 +492,7 @@ The integration test should:
 
 Remove this slice when the tool has the listed options and error paths.
 
-### Slice 7: JSON Field Tests
+### Slice 6: JSON Field Tests
 
 Add focused tests for generated JSON.
 
@@ -555,7 +515,7 @@ The integration test should:
 
 Remove this slice when generated output is tested at field level.
 
-### Slice 8: Diagnostics And Errors
+### Slice 7: Diagnostics And Errors
 
 Make failure modes useful.
 
@@ -578,7 +538,7 @@ The integration test should:
 
 Remove this slice when common error paths are tested.
 
-### Slice 9: Future ParAnimator Adapter
+### Slice 8: Future ParAnimator Adapter
 
 Do not implement this in the tracker-file JSON pipeline.
 
@@ -611,6 +571,7 @@ Current tool integration gold files are:
 ```
 tests/par-beatdown/gold-write-tracker-source.json
 tests/par-beatdown/gold-write-module-structure.json
+tests/par-beatdown/gold-write-timeline-clock.json
 ```
 
 The fixture is useful because it is XM, public domain, and large enough to

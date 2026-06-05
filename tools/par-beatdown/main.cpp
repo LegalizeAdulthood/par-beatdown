@@ -27,6 +27,7 @@ void reset_optional_sections(ToolOptions &options)
     if (!options.include_filter_seen)
     {
         options.settings.include_module = false;
+        options.settings.include_timeline = false;
         options.include_filter_seen = true;
     }
 }
@@ -42,6 +43,11 @@ void add_include(ToolOptions &options, const std::string &name)
     if (name == "module")
     {
         options.settings.include_module = true;
+        return;
+    }
+    if (name == "timeline")
+    {
+        options.settings.include_timeline = true;
         return;
     }
     throw std::runtime_error{"unknown include section: " + name};
