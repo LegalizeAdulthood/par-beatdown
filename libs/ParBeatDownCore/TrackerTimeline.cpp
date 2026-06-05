@@ -66,6 +66,24 @@ int frame_at(double seconds, const TrackerTimelineSettings &settings)
     return static_cast<int>(std::llround((seconds + settings.offset_seconds) * settings.fps));
 }
 
+std::string trim_pattern_text(std::string text)
+{
+    while (!text.empty() && text.front() == ' ')
+    {
+        text.erase(text.begin());
+    }
+    while (!text.empty() && text.back() == ' ')
+    {
+        text.pop_back();
+    }
+    return text;
+}
+
+bool has_pattern_text(const std::string &text)
+{
+    return std::any_of(text.begin(), text.end(), [](char item) { return item != ' ' && item != '.'; });
+}
+
 nlohmann::ordered_json make_source_json(const TrackerSourceInfo *source)
 {
     if (source == nullptr)
@@ -185,18 +203,56 @@ nlohmann::ordered_json make_timeline_json(const TrackerClockInfo *clock)
         {"last_frame", clock->timeline.last_frame}};
 }
 
-nlohmann::ordered_json make_events_json(const TrackerClockInfo *clock)
+nlohmann::ordered_json make_event_json(const TrackerTimelineEvent &event)
+{
+    auto output = nlohmann::ordered_json{{"kind", event.kind}, {"time_seconds", event.time_seconds},
+        {"frame", event.frame}, {"order", event.order}, {"pattern", event.pattern}, {"row", event.row}};
+    if (event.channel >= 0)
+    {
+        output["channel"] = event.channel;
+    }
+    if (!event.note.empty())
+    {
+        output["note"] = event.note;
+    }
+    if (event.instrument >= 0)
+    {
+        output["instrument"] = event.instrument;
+    }
+    if (event.sample >= 0)
+    {
+        output["sample"] = event.sample;
+    }
+    if (event.volume >= 0)
+    {
+        output["volume"] = event.volume;
+    }
+    if (!event.effect.empty())
+    {
+        output["effect"] = event.effect;
+    }
+    if (event.parameter >= 0)
+    {
+        output["parameter"] = event.parameter;
+    }
+    if (!event.text.empty())
+    {
+        output["text"] = event.text;
+    }
+    return output;
+}
+
+nlohmann::ordered_json make_events_json(const std::vector<TrackerTimelineEvent> *source_events)
 {
     auto events = nlohmann::ordered_json::array();
-    if (clock == nullptr)
+    if (source_events == nullptr)
     {
         return events;
     }
 
-    for (const auto &event : clock->events)
+    for (const auto &event : *source_events)
     {
-        events.push_back(nlohmann::ordered_json{{"kind", event.kind}, {"time_seconds", event.time_seconds},
-            {"frame", event.frame}, {"order", event.order}, {"pattern", event.pattern}, {"row", event.row}});
+        events.push_back(make_event_json(event));
     }
     return events;
 }
@@ -217,7 +273,7 @@ nlohmann::ordered_json make_diagnostics_json(const TrackerSourceInfo *source)
 }
 
 std::string dump_tracker_timeline(const TrackerTimelineSettings &settings, const TrackerSourceInfo *source,
-    const TrackerModuleInfo *module, const TrackerClockInfo *clock)
+    const TrackerModuleInfo *module, const TrackerClockInfo *clock, const std::vector<TrackerTimelineEvent> *events)
 {
     nlohmann::ordered_json root{{"schema", tracker_timeline_schema}, {"version", tracker_timeline_schema_version},
         {"generator",
@@ -229,7 +285,7 @@ std::string dump_tracker_timeline(const TrackerTimelineSettings &settings, const
                 {"channels", settings.channels}, {"offset_seconds", settings.offset_seconds},
                 {"feature_hop_seconds", settings.feature_hop_seconds}}},
         {"module", make_module_json(module, clock)}, {"timeline", make_timeline_json(clock)},
-        {"events", make_events_json(clock)}, {"features", nlohmann::ordered_json::array()},
+        {"events", make_events_json(events)}, {"features", nlohmann::ordered_json::array()},
         {"diagnostics", make_diagnostics_json(source)}};
 
     return root.dump(2) + "\n";
@@ -247,6 +303,7 @@ struct TrackerModule::Impl
     void load_source_info();
     void load_module_info();
     TrackerClockInfo make_clock_info(const TrackerTimelineSettings &settings) const;
+    std::vector<TrackerTimelineEvent> make_pattern_events(const TrackerTimelineSettings &settings) const;
 
     std::string file_;
     std::uintmax_t size_bytes_;
@@ -393,6 +450,101 @@ TrackerClockInfo TrackerModule::Impl::make_clock_info(const TrackerTimelineSetti
     return info;
 }
 
+std::vector<TrackerTimelineEvent> TrackerModule::Impl::make_pattern_events(
+    const TrackerTimelineSettings &settings) const
+{
+    std::vector<TrackerTimelineEvent> events;
+    for (const auto &order : module_info_.orders)
+    {
+        if (order.kind != "pattern")
+        {
+            continue;
+        }
+
+        const auto rows = pattern_row_count(order.pattern);
+        for (int row = 0; row < rows; ++row)
+        {
+            const auto row_time = module_.get_time_at_position(order.index, row);
+            if (!is_valid_time(row_time))
+            {
+                continue;
+            }
+
+            const auto frame = frame_at(row_time, settings);
+            for (int channel = 0; channel < module_info_.channel_count; ++channel)
+            {
+                const auto note =
+                    module_.get_pattern_row_channel_command(order.pattern, row, channel, openmpt::module::command_note);
+                const auto instrument = module_.get_pattern_row_channel_command(
+                    order.pattern, row, channel, openmpt::module::command_instrument);
+                const auto volume = module_.get_pattern_row_channel_command(
+                    order.pattern, row, channel, openmpt::module::command_volume);
+                const auto volume_effect = module_.get_pattern_row_channel_command(
+                    order.pattern, row, channel, openmpt::module::command_volumeffect);
+                const auto effect = module_.get_pattern_row_channel_command(
+                    order.pattern, row, channel, openmpt::module::command_effect);
+                const auto parameter = module_.get_pattern_row_channel_command(
+                    order.pattern, row, channel, openmpt::module::command_parameter);
+                const auto text =
+                    trim_pattern_text(module_.format_pattern_row_channel(order.pattern, row, channel, 0, false));
+
+                const auto has_note = note != 0 || instrument != 0;
+                const auto has_effect = volume != 0 || volume_effect != 0 || effect != 0 || parameter != 0;
+                if (!has_note && !has_effect && !has_pattern_text(text))
+                {
+                    continue;
+                }
+
+                const auto note_text = trim_pattern_text(module_.format_pattern_row_channel_command(
+                    order.pattern, row, channel, openmpt::module::command_note));
+                const auto effect_text = trim_pattern_text(module_.format_pattern_row_channel_command(
+                    order.pattern, row, channel, openmpt::module::command_effect));
+
+                if (has_note)
+                {
+                    TrackerTimelineEvent event{"note", row_time, frame, order.index, order.pattern, row};
+                    event.channel = channel;
+                    if (has_pattern_text(note_text))
+                    {
+                        event.note = note_text;
+                    }
+                    if (instrument != 0)
+                    {
+                        event.instrument = static_cast<int>(instrument);
+                    }
+                    if (volume != 0)
+                    {
+                        event.volume = static_cast<int>(volume);
+                    }
+                    event.text = text;
+                    events.push_back(event);
+                }
+
+                if (has_effect)
+                {
+                    TrackerTimelineEvent event{"effect", row_time, frame, order.index, order.pattern, row};
+                    event.channel = channel;
+                    if (volume != 0)
+                    {
+                        event.volume = static_cast<int>(volume);
+                    }
+                    if (has_pattern_text(effect_text))
+                    {
+                        event.effect = effect_text;
+                    }
+                    if (effect != 0 || parameter != 0)
+                    {
+                        event.parameter = static_cast<int>(parameter);
+                    }
+                    event.text = text;
+                    events.push_back(event);
+                }
+            }
+        }
+    }
+    return events;
+}
+
 TrackerModule::TrackerModule(std::string file)
 try :
     impl_{std::make_unique<Impl>(std::move(file))}
@@ -424,16 +576,28 @@ TrackerClockInfo TrackerModule::clock_info(const TrackerTimelineSettings &settin
     return impl_->make_clock_info(settings);
 }
 
+std::vector<TrackerTimelineEvent> TrackerModule::pattern_events(const TrackerTimelineSettings &settings)
+{
+    return impl_->make_pattern_events(settings);
+}
+
 std::string tracker_timeline_schema_shell(const TrackerTimelineSettings &settings)
 {
-    return dump_tracker_timeline(settings, nullptr, nullptr, nullptr);
+    return dump_tracker_timeline(settings, nullptr, nullptr, nullptr, nullptr);
 }
 
 std::string tracker_timeline_json(TrackerModule &module, const TrackerTimelineSettings &settings)
 {
     const auto clock = settings.include_timeline ? module.clock_info(settings) : TrackerClockInfo{};
+    auto events = settings.include_timeline ? clock.events : std::vector<TrackerTimelineEvent>{};
+    if (settings.include_pattern_events)
+    {
+        auto pattern_events = module.pattern_events(settings);
+        events.insert(events.end(), pattern_events.begin(), pattern_events.end());
+    }
+    const auto include_events = settings.include_timeline || settings.include_pattern_events;
     return dump_tracker_timeline(settings, &module.source(), settings.include_module ? &module.module_info() : nullptr,
-        settings.include_timeline ? &clock : nullptr);
+        settings.include_timeline ? &clock : nullptr, include_events ? &events : nullptr);
 }
 
 std::string tracker_timeline_from_file(const std::string &file, const TrackerTimelineSettings &settings)

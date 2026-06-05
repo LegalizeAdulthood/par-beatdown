@@ -32,6 +32,8 @@ endif()
 
 file(READ "${PAR_BEATDOWN_EXPECTED}" expected)
 file(READ "${PAR_BEATDOWN_OUTPUT}" actual)
+string(REPLACE "\r\n" "\n" expected "${expected}")
+string(REPLACE "\r\n" "\n" actual "${actual}")
 
 if(NOT expected STREQUAL actual)
     message(FATAL_ERROR

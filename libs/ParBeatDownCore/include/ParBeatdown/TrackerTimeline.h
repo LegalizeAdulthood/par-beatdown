@@ -22,6 +22,7 @@ struct TrackerTimelineSettings
     double feature_hop_seconds{1.0 / 30.0};
     bool include_module{true};
     bool include_timeline{false};
+    bool include_pattern_events{false};
 };
 
 struct TrackerSourceInfo
@@ -105,6 +106,14 @@ struct TrackerTimelineEvent
     int order{0};
     int pattern{0};
     int row{0};
+    int channel{-1};
+    std::string note;
+    int instrument{-1};
+    int sample{-1};
+    int volume{-1};
+    std::string effect;
+    int parameter{-1};
+    std::string text;
 };
 
 struct TrackerClockInfo
@@ -127,6 +136,7 @@ public:
     const TrackerSourceInfo &source() const;
     const TrackerModuleInfo &module_info() const;
     TrackerClockInfo clock_info(const TrackerTimelineSettings &settings);
+    std::vector<TrackerTimelineEvent> pattern_events(const TrackerTimelineSettings &settings);
 
 private:
     struct Impl;

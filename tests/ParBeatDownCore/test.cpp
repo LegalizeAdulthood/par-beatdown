@@ -5,6 +5,7 @@
 #ifdef PAR_BEATDOWN_ENABLE_TRACKER_FILE
 #include <ParBeatdown/TrackerTimeline.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <nlohmann/json.hpp>
 #include <string>
@@ -131,5 +132,39 @@ TEST(ParBeatDownCore, trackerTimelineBuildsClock)
     ASSERT_EQ("order", json.at("events").at(0).at("kind"));
     ASSERT_EQ("pattern", json.at("events").at(1).at("kind"));
     ASSERT_EQ("row", json.at("events").at(2).at("kind"));
+}
+
+TEST(ParBeatDownCore, trackerTimelineBuildsPatternEvents)
+{
+    const auto file = std::string{PAR_BEATDOWN_TEST_DATA_DIR} + "/my_neighbors_kid_is_an_internet_addict.xm";
+    par_beatdown::TrackerModule module{file};
+    par_beatdown::TrackerTimelineSettings settings;
+    settings.include_module = false;
+    settings.include_pattern_events = true;
+
+    const auto events = module.pattern_events(settings);
+    const auto note = std::find_if(events.begin(), events.end(),
+        [](const par_beatdown::TrackerTimelineEvent &event) { return event.kind == "note"; });
+    const auto effect = std::find_if(events.begin(), events.end(),
+        [](const par_beatdown::TrackerTimelineEvent &event) { return event.kind == "effect"; });
+    ASSERT_NE(events.end(), note);
+    ASSERT_NE(events.end(), effect);
+    ASSERT_GE(note->channel, 0);
+    ASSERT_FALSE(note->text.empty());
+    ASSERT_EQ("C-5", note->note);
+    ASSERT_EQ(1, note->instrument);
+    ASSERT_EQ("C-5 01 .. ...", note->text);
+    ASSERT_GE(effect->channel, 0);
+    ASSERT_FALSE(effect->text.empty());
+    ASSERT_EQ("7", effect->effect);
+    ASSERT_EQ(135, effect->parameter);
+    ASSERT_EQ("F#4 04 .. 787", effect->text);
+
+    const auto json = nlohmann::json::parse(par_beatdown::tracker_timeline_json(module, settings));
+    ASSERT_EQ(0, json.at("module").at("channel_count"));
+    ASSERT_EQ(0, json.at("timeline").at("frames"));
+    ASSERT_FALSE(json.at("events").empty());
+    ASSERT_TRUE(json.at("events").at(0).contains("channel"));
+    ASSERT_TRUE(json.at("events").at(0).contains("text"));
 }
 #endif

@@ -63,6 +63,7 @@ Rules:
 * use `--include <section>` to choose non-global JSON sections
 * add one `gold-<test-case>.json` per integration use case
 * do not grow old gold files when a later slice adds a new section
+* normalize line endings before comparing generated output to gold JSON
 * label all tool integration tests `par-beatdown`
 
 Global fields:
@@ -79,6 +80,7 @@ Current include sections:
 * `source` writes only global fields
 * `module` also writes `module`
 * `timeline` also writes timeline clock data and timing events
+* `events` also writes tracker pattern command events
 
 ## Schema V1
 
@@ -397,41 +399,7 @@ Diagnostics {
 
 ## Implementation Slices
 
-### Slice 3: Pattern Command Events
-
-Convert tracker cell commands into neutral events.
-
-The slice should:
-
-* scan pattern rows and channels
-* read raw note, instrument, volume, effect, and parameter commands
-* emit `note` events when note or instrument data exists
-* emit `effect` events when effect data exists
-* include formatted command text for debugging
-* skip empty cells
-
-The integration test should:
-
-* add `gold-write-pattern-events.json`
-* run the tool with `--include events`
-* validate at least one `note` event from the XM fixture
-* validate at least one `effect` event from the XM fixture
-* validate formatted command text for a stable fixture cell
-
-Use these libopenmpt calls:
-
-* `get_pattern_row_channel_command`
-* `format_pattern_row_channel_command`
-* `format_pattern_row_channel`
-
-Keep raw command decoding conservative.  If a tracker format encodes a
-command differently, preserve the raw value and add a diagnostic warning
-instead of guessing.
-
-Remove this slice when note and effect events are generated from the XM
-test file and covered by unit and integration tests.
-
-### Slice 4: Rendered Feature Frames
+### Slice 3: Rendered Feature Frames
 
 Add optional PCM-derived feature frames.
 
@@ -462,7 +430,7 @@ Use these libopenmpt calls:
 Remove this slice when `features` is populated and covered by unit and
 integration tests.
 
-### Slice 5: Command Line Options
+### Slice 4: Command Line Options
 
 Extend the minimal tracker writer in `tools/par-beatdown`.
 
@@ -492,7 +460,7 @@ The integration test should:
 
 Remove this slice when the tool has the listed options and error paths.
 
-### Slice 6: JSON Field Tests
+### Slice 5: JSON Field Tests
 
 Add focused tests for generated JSON.
 
@@ -509,13 +477,13 @@ The slice should:
 The integration test should:
 
 * parse the generated output with a CMake-driven helper
-* keep byte-for-byte gold comparison for each slice output
+* keep line-ending-normalized gold comparison for each slice output
 * report the first mismatched field when field checks fail
 * keep all tool integration tests labeled `par-beatdown`
 
 Remove this slice when generated output is tested at field level.
 
-### Slice 7: Diagnostics And Errors
+### Slice 6: Diagnostics And Errors
 
 Make failure modes useful.
 
@@ -538,7 +506,7 @@ The integration test should:
 
 Remove this slice when common error paths are tested.
 
-### Slice 8: Future ParAnimator Adapter
+### Slice 7: Future ParAnimator Adapter
 
 Do not implement this in the tracker-file JSON pipeline.
 
@@ -572,6 +540,7 @@ Current tool integration gold files are:
 tests/par-beatdown/gold-write-tracker-source.json
 tests/par-beatdown/gold-write-module-structure.json
 tests/par-beatdown/gold-write-timeline-clock.json
+tests/par-beatdown/gold-write-pattern-events.json
 ```
 
 The fixture is useful because it is XM, public domain, and large enough to
