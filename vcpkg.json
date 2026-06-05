@@ -1,0 +1,9 @@
+{
+  "$schema": "https://github.com/microsoft/vcpkg-tool/blob/main/docs/vcpkg.schema.json",
+  "name": "par-beatdown",
+  "description": "Audio feature extraction for ParAnimator timelines",
+  "version-semver": "1.0.0",
+  "dependencies": [
+    "gtest"
+  ]
+}
