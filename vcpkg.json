@@ -3,8 +3,24 @@
   "name": "par-beatdown",
   "description": "Audio feature extraction for ParAnimator timelines",
   "version-semver": "1.0.0",
+  "default-features": [
+    "tracker-file"
+  ],
   "dependencies": [
-    "gtest",
-    "sonic-annotator"
-  ]
+    "gtest"
+  ],
+  "features": {
+    "audio-file": {
+      "description": "Enable ordinary audio file analysis through Sonic Annotator.",
+      "dependencies": [
+        "sonic-annotator"
+      ]
+    },
+    "tracker-file": {
+      "description": "Enable tracker module file analysis through libopenmpt.",
+      "dependencies": [
+        "libopenmpt"
+      ]
+    }
+  }
 }

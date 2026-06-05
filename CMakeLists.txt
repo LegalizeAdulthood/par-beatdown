@@ -11,6 +11,13 @@ set_cxx_standard(17)
 set(PAR_BEATDOWN_PROJECT_NAME "Par Beatdown" CACHE "STRING" "Default project name for IDEs")
 project("${PAR_BEATDOWN_PROJECT_NAME}" CXX)
 
+option(PAR_BEATDOWN_ENABLE_TRACKER_FILE "Enable tracker file support" ON)
+option(PAR_BEATDOWN_ENABLE_AUDIO_FILE "Enable ordinary audio file support" OFF)
+
+if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
+    find_package(libopenmpt CONFIG REQUIRED)
+endif()
+
 include(CTest)
 
 add_subdirectory(libs)
