@@ -384,6 +384,13 @@ The slice should:
 * read pattern names and row counts
 * read rows-per-beat and rows-per-measure
 
+The integration test should:
+
+* keep `par-beatdown.writeTrackerTimeline` under `tests/par-beatdown`
+* update `gold-write-tracker-timeline.json`
+* validate non-zero module counts through the gold JSON
+* validate metadata, subsongs, orders, and patterns through the gold JSON
+
 Use these libopenmpt calls:
 
 * `get_num_channels`
@@ -402,7 +409,7 @@ Use these libopenmpt calls:
 * `get_pattern_rows_per_measure`
 
 Remove this slice when metadata, subsongs, orders, and patterns are
-written and covered by tests.
+written and covered by unit and integration tests.
 
 ### Slice 4: Timeline Clock
 
@@ -417,6 +424,13 @@ The slice should:
 * add `time_seconds` and `frame` to order entries
 * create `order`, `pattern`, and `row` events
 * omit positions with negative or infinite time
+
+The integration test should:
+
+* update `gold-write-tracker-timeline.json`
+* validate `timeline.frames`, `first_frame`, and `last_frame`
+* validate order `time_seconds` and `frame` fields
+* validate generated `order`, `pattern`, and `row` events
 
 Use these libopenmpt calls:
 
@@ -434,7 +448,8 @@ Frame conversion:
 frame = round((time_seconds + offset_seconds) * fps)
 ```
 
-Remove this slice when row and order events have stable frame values.
+Remove this slice when row and order events have stable frame values in
+unit and integration tests.
 
 ### Slice 5: Pattern Command Events
 
@@ -449,6 +464,13 @@ The slice should:
 * include formatted command text for debugging
 * skip empty cells
 
+The integration test should:
+
+* update `gold-write-tracker-timeline.json`
+* validate at least one `note` event from the XM fixture
+* validate at least one `effect` event from the XM fixture
+* validate formatted command text for a stable fixture cell
+
 Use these libopenmpt calls:
 
 * `get_pattern_row_channel_command`
@@ -460,7 +482,7 @@ command differently, preserve the raw value and add a diagnostic warning
 instead of guessing.
 
 Remove this slice when note and effect events are generated from the XM
-test file.
+test file and covered by unit and integration tests.
 
 ### Slice 6: Rendered Feature Frames
 
@@ -476,13 +498,21 @@ The slice should:
 * record per-channel mono VU values
 * allow features to be disabled for structure-only output
 
+The integration test should:
+
+* update `gold-write-tracker-timeline.json` for enabled features
+* validate feature frame count for the default hop interval
+* validate stable RMS, peak, active channel, and VU fields
+* add a tool integration case for disabled features
+
 Use these libopenmpt calls:
 
 * `read_interleaved_stereo`
 * `get_current_playing_channels`
 * `get_current_channel_vu_mono`
 
-Remove this slice when `features` is populated and tested.
+Remove this slice when `features` is populated and covered by unit and
+integration tests.
 
 ### Slice 7: Command Line Options
 
@@ -505,6 +535,13 @@ The slice should:
 * write the JSON file
 * return non-zero on failure
 
+The integration test should:
+
+* add a tool integration case for `--fps`
+* add a tool integration case for `--offset`
+* add a tool integration case for `--feature-hop`
+* validate output JSON changes through gold files or field checks
+
 Remove this slice when the tool has the listed options and error paths.
 
 ### Slice 8: JSON Field Tests
@@ -520,6 +557,13 @@ The slice should:
 * check at least one order event exists
 * check frame conversion with a known fps
 * keep the CMake-script gold integration test updated
+
+The integration test should:
+
+* parse the generated output with a CMake-driven helper
+* keep byte-for-byte gold comparison for stable full output
+* report the first mismatched field when field checks fail
+* keep all tool integration tests labeled `par-beatdown`
 
 Remove this slice when generated output is tested at field level.
 
@@ -537,6 +581,13 @@ The slice should:
 * carry non-fatal libopenmpt log lines into `diagnostics.log`
 * keep user-facing errors short
 
+The integration test should:
+
+* add a tool integration case for a missing input file
+* add a tool integration case for an invalid tracker file
+* add a tool integration case for an invalid output path
+* validate non-zero exit codes and short stderr text
+
 Remove this slice when common error paths are tested.
 
 ### Slice 10: Future ParAnimator Adapter
@@ -549,6 +600,7 @@ Later work may choose one of two paths:
 * add a separate `music2keyframes` or timeline adapter tool
 
 That later output must have its own schema and field documentation.
+That later plan must include integration tests for every adapter slice.
 
 Remove this slice when a separate ParAnimator adapter plan exists.
 
