@@ -1,0 +1,51 @@
+{
+  "schema": "par-beatdown.tracker-timeline",
+  "version": 1,
+  "generator": {
+    "name": "par-beatdown",
+    "version": "0.1.0",
+    "backend": "tracker-file",
+    "library": "libopenmpt",
+    "library_version": "0.8.6"
+  },
+  "source": {
+    "file": "data/my_neighbors_kid_is_an_internet_addict.xm",
+    "size_bytes": 6414784,
+    "format": "xm",
+    "title": "",
+    "duration_seconds": 163.59525000000195,
+    "selected_subsong": 0,
+    "subsong_count": 1
+  },
+  "render": {
+    "fps": 30.0,
+    "sample_rate": 48000,
+    "channels": 2,
+    "offset_seconds": 0.0,
+    "feature_hop_seconds": 0.03333333333333333
+  },
+  "module": {
+    "channel_count": 0,
+    "order_count": 0,
+    "pattern_count": 0,
+    "instrument_count": 0,
+    "sample_count": 0,
+    "metadata": [],
+    "subsongs": [],
+    "orders": [],
+    "patterns": []
+  },
+  "timeline": {
+    "duration_seconds": 0.0,
+    "frames": 0,
+    "first_frame": 0,
+    "last_frame": -1
+  },
+  "events": [],
+  "features": [],
+  "diagnostics": {
+    "warnings": [],
+    "unsupported": [],
+    "log": []
+  }
+}

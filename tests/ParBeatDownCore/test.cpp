@@ -5,7 +5,9 @@
 #ifdef PAR_BEATDOWN_ENABLE_TRACKER_FILE
 #include <ParBeatdown/TrackerTimeline.h>
 
+#include <cstdint>
 #include <nlohmann/json.hpp>
+#include <string>
 #endif
 
 TEST(ParBeatDownCore, version)
@@ -33,5 +35,29 @@ TEST(ParBeatDownCore, trackerTimelineSchemaShell)
     ASSERT_TRUE(json.at("events").empty());
     ASSERT_TRUE(json.at("features").empty());
     ASSERT_TRUE(json.at("diagnostics").at("warnings").empty());
+}
+
+TEST(ParBeatDownCore, trackerModuleLoadsSource)
+{
+    const auto file = std::string{PAR_BEATDOWN_TEST_DATA_DIR} + "/my_neighbors_kid_is_an_internet_addict.xm";
+    const par_beatdown::TrackerModule module{file};
+    const auto &source = module.source();
+
+    ASSERT_EQ(file, source.file);
+    ASSERT_EQ(static_cast<std::uintmax_t>(6414784), source.size_bytes);
+    ASSERT_EQ("xm", source.format);
+    ASSERT_GT(source.duration_seconds, 0.0);
+    ASSERT_GE(source.selected_subsong, -1);
+    ASSERT_GE(source.subsong_count, 1);
+
+    const auto json = nlohmann::json::parse(par_beatdown::tracker_timeline_json(module));
+    ASSERT_EQ(source.file, json.at("source").at("file"));
+    ASSERT_EQ(source.size_bytes, json.at("source").at("size_bytes").get<std::uintmax_t>());
+    ASSERT_EQ(source.format, json.at("source").at("format"));
+    ASSERT_EQ(source.title, json.at("source").at("title"));
+    ASSERT_DOUBLE_EQ(source.duration_seconds, json.at("source").at("duration_seconds").get<double>());
+    ASSERT_EQ(source.selected_subsong, json.at("source").at("selected_subsong"));
+    ASSERT_EQ(source.subsong_count, json.at("source").at("subsong_count"));
+    ASSERT_EQ(source.log.size(), json.at("diagnostics").at("log").size());
 }
 #endif

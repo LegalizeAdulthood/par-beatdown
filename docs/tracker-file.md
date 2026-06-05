@@ -370,30 +370,6 @@ Diagnostics {
 
 ## Implementation Slices
 
-### Slice 2: Load Tracker Source
-
-Create a `TrackerModule` wrapper around `openmpt::module`.
-
-The slice should:
-
-* open the input file as binary
-* record file size
-* pass a stream to `openmpt::module`
-* collect libopenmpt log output
-* catch `openmpt::exception`
-* expose source metadata for JSON writing
-* test with `data/my_neighbors_kid_is_an_internet_addict.xm`
-
-Use these libopenmpt calls:
-
-* `get_duration_seconds`
-* `get_metadata_keys`
-* `get_metadata`
-* `get_num_subsongs`
-* `get_selected_subsong`
-
-Remove this slice when source and generator fields are populated.
-
 ### Slice 3: Static Module Structure
 
 Populate the `module` object.
@@ -508,43 +484,42 @@ Use these libopenmpt calls:
 
 Remove this slice when `features` is populated and tested.
 
-### Slice 7: Command Line Output
+### Slice 7: Command Line Options
 
-Wire the tracker writer into `tools/par-beatdown`.
+Extend the minimal tracker writer in `tools/par-beatdown`.
 
-The command should support:
+The command already supports:
 
 ```
-par-beatdown song.xm -o song.music.json --fps 30
+par-beatdown song.xm -o song.music.json
 ```
 
 The slice should:
 
-* parse input path
-* parse `-o`
 * parse `--fps`
 * parse `--offset`
 * parse `--feature-hop`
+* reject missing input paths
+* reject missing `-o` output paths
 * report invalid arguments clearly
 * write the JSON file
 * return non-zero on failure
 
-Remove this slice when the tool writes JSON for the test XM file.
+Remove this slice when the tool has the listed options and error paths.
 
-### Slice 8: JSON Golden Tests
+### Slice 8: JSON Field Tests
 
 Add focused tests for generated JSON.
 
 The slice should:
 
-* generate JSON from the checked-in XM test file
 * parse the output with nlohmann-json
 * check root schema and version
 * check source format and title
 * check module counts are non-zero
 * check at least one order event exists
 * check frame conversion with a known fps
-* avoid brittle full-file string comparisons
+* keep the CMake-script gold integration test updated
 
 Remove this slice when generated output is tested at field level.
 
@@ -589,6 +564,12 @@ The sidecar metadata is:
 
 ```
 data/my_neighbors_kid_is_an_internet_addict.md
+```
+
+The tool integration gold timeline is:
+
+```
+tests/par-beatdown/gold-write-tracker-timeline.json
 ```
 
 The fixture is useful because it is XM, public domain, and large enough to
