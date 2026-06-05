@@ -32,7 +32,7 @@ ParAnimator.
 ## System Overview
 
 ```
-song.mp3
+song.xm
   -> par-beatdown
   -> song.music.json
   -> paranimator
@@ -40,24 +40,46 @@ song.mp3
   -> external video/audio muxing
 ```
 
-par-beatdown is a separate command-line tool.  It invokes or uses external
-audio-analysis tools, then converts their output into a neutral timeline file.
+par-beatdown is a separate command-line tool.  It reads tracker files
+directly or invokes external audio-analysis tools, then converts their
+output into a neutral timeline file.
 
 ParAnimator should consume only the generated timeline data.
 
 The important boundary is:
 
 ```
-audio-analysis backend  ->  neutral JSON data  ->  ParAnimator
+music-analysis backend  ->  neutral JSON data  ->  ParAnimator
 ```
 
-ParAnimator should not know whether the analysis came from Sonic Annotator,
-Marsyas, aubio, Essentia, a hand-authored file, or something found under a
-desk with a 2007 timestamp.
+ParAnimator should not know whether the analysis came from libopenmpt,
+Sonic Annotator, Marsyas, aubio, Essentia, a hand-authored file, or
+something found under a desk with a 2007 timestamp.
 
 ## Recommended Backend Strategy
 
-The first backend should be Sonic Annotator.
+The default first backend should be tracker files through libopenmpt.
+
+Tracker files such as XM, MOD, S3M, IT, and MPTM contain musical structure
+instead of only rendered audio.  They expose orders, patterns, rows,
+channels, tempo changes, instruments, samples, and playback timing.  That
+is useful for animation because it can provide beat-like and section-like
+timing without starting with blind audio analysis.
+
+Conceptually:
+
+```
+tracker file
+  -> libopenmpt
+  -> pattern / timing / PCM data
+  -> par-beatdown conversion
+  -> song.music.json
+```
+
+This keeps the first implementation inside the program and avoids Vamp
+plugin discovery while the timeline format is still young.
+
+The optional audio-file backend should be Sonic Annotator.
 
 Sonic Annotator is a batch feature-extraction tool.  It runs Vamp audio
 analysis plugins on audio files and writes feature results in selectable
@@ -73,20 +95,21 @@ audio file
   -> song.music.json
 ```
 
-This keeps par-beatdown small at first.  It does not need to become an audio
-decoder, a DSP framework, or a museum for research code.
+This keeps par-beatdown small at first.  It does not need to become an
+audio decoder, a DSP framework, or a museum for research code.
 
 ## Backend Candidates
 
 Initial backend:
 
 ```
-Sonic Annotator
+tracker-file: libopenmpt
 ```
 
 Possible later backends:
 
 ```
+audio-file: Sonic Annotator
 Marsyas
 aubio
 Essentia
@@ -95,16 +118,21 @@ hand-authored JSON
 some regrettable script from 2007
 ```
 
-Sonic Annotator should be treated as the default first implementation.
+libopenmpt should be treated as the default first implementation.
 
-Marsyas remains useful as an experimental or alternate backend, but should not
-be the foundation unless it provides a specific feature that cannot be obtained
-more conveniently from Vamp plugins.
+Sonic Annotator remains the preferred first audio-file backend, but it
+should be optional because it depends on external Vamp plugins for useful
+analysis.
+
+Marsyas remains useful as an experimental or alternate backend, but should
+not be the foundation unless it provides a specific feature that cannot be
+obtained more conveniently from Vamp plugins.
 
 ## Licensing Boundary
 
-par-beatdown may depend on GPL tools.  That is acceptable because par-beatdown
-is a separate tool and ParAnimator consumes only the generated JSON timeline.
+par-beatdown may depend on GPL tools.  That is acceptable because
+par-beatdown is a separate tool and ParAnimator consumes only the generated
+JSON timeline.
 
 The architecture should remain:
 
@@ -116,15 +144,28 @@ paranimator        no direct dependency on audio-analysis backends
 
 The JSON output is data, not code from the analysis backend.
 
-ParAnimator should not link against Sonic Annotator, Marsyas, aubio, Essentia,
-or any other audio-analysis backend.  It should read timeline files.
+ParAnimator should not link against libopenmpt, Sonic Annotator, Marsyas,
+aubio, Essentia, or any other music-analysis backend.  It should read
+timeline files.
 
-## Input Audio
+## Input Files
 
-par-beatdown should accept compressed and uncompressed audio files.
+par-beatdown should accept tracker files, compressed audio files, and
+uncompressed audio files.
 
-Expected initial input formats depend on the backend, but the design should
-assume common audio files such as:
+Expected initial tracker formats depend on libopenmpt, but the design
+should assume common module files such as:
+
+```
+MOD
+XM
+S3M
+IT
+MPTM
+```
+
+Expected audio-file formats depend on the selected audio backend, but the
+design should assume common audio files such as:
 
 ```
 MP3
@@ -135,8 +176,12 @@ AIFF
 FLAC, if supported by the selected backend
 ```
 
-Internally, audio analysis operates on decoded PCM samples.  The public design
-should not care whether the original file was MP3 or WAV.
+Tracker-file analysis can use musical structure directly and may also
+decode PCM samples through libopenmpt when continuous energy features are
+useful.
+
+Internally, audio analysis operates on decoded PCM samples.  The public
+design should not care whether the original file was MP3 or WAV.
 
 Conceptually:
 
@@ -173,10 +218,10 @@ temporary analysis file.
 Initial command:
 
 ```
-par-beatdown song.mp3 -o song.music.json --fps 30
+par-beatdown song.xm -o song.music.json --fps 30
 ```
 
-Equivalent WAV example:
+Equivalent audio-file example:
 
 ```
 par-beatdown song.wav -o song.music.json --fps 30
@@ -191,6 +236,7 @@ par-beatdown song.mp3 -o song.music.json --fps 30 --offset 0.000
 Possible later options:
 
 ```
+--backend tracker-file
 --backend sonic-annotator
 --backend marsyas
 --backend aubio
@@ -206,25 +252,34 @@ Possible later options:
 
 ## Components
 
-### 1. Audio Input Stage
+### 1. Input Stage
 
-Responsible for locating, validating, and decoding the source audio.
+Responsible for locating, validating, and reading the source file.
 
 Responsibilities:
 
 * Accept the source filename.
 * Determine file type where practical.
 * Preserve original filename in the timeline metadata.
+* Read tracker structure when the selected backend supports it.
 * Decode, downmix, or resample as needed by the selected backend.
 * Account for manual audio offset.
 
-This stage exists because MP3 files exist, and civilization has not recovered.
+This stage exists because MP3 files exist, and civilization has not
+recovered.
 
 ### 2. Backend Runner
 
 Responsible for invoking the selected analysis backend.
 
-For the initial Sonic Annotator backend, this means:
+For the initial tracker-file backend, this means:
+
+* Load the module with libopenmpt.
+* Read song duration, channel count, and format metadata.
+* Map order, pattern, and row timing into timeline events.
+* Decode PCM when continuous energy features are needed.
+
+For the optional Sonic Annotator backend, this means:
 
 * Locate sonic-annotator.
 * Locate required Vamp plugins.
@@ -235,7 +290,7 @@ For the initial Sonic Annotator backend, this means:
 The backend runner should be isolated from the rest of the code.
 
 The rest of par-beatdown should see backend output as feature data, not as
-Sonic Annotator trivia.
+libopenmpt state or Sonic Annotator trivia.
 
 ### 3. Feature Importer
 
@@ -243,6 +298,10 @@ Responsible for converting backend-specific output into internal feature
 streams.
 
 For Sonic Annotator, this probably means parsing CSV output.
+
+For tracker files, this means converting module metadata, playback timing,
+patterns, rows, channels, and optional PCM analysis into the same internal
+feature streams.
 
 Internal representation should distinguish:
 
@@ -277,6 +336,8 @@ Responsibilities:
 
 ParAnimator should not know about Sonic Annotator.
 
+It should not know about libopenmpt.
+
 It should not know about Marsyas.
 
 It should know only about external timeline data.
@@ -292,15 +353,15 @@ Example:
   "version": 1,
   "generator": {
     "name": "par-beatdown",
-    "backend": "sonic-annotator"
+    "backend": "tracker-file"
   },
   "audio": {
-    "file": "song.mp3",
-    "codec": "mp3",
+    "file": "song.xm",
+    "codec": "xm",
     "duration": 184.2,
-    "source_channels": 2,
+    "source_channels": 4,
     "source_sample_rate": 44100,
-    "analysis_channels": 1,
+    "analysis_channels": 2,
     "analysis_sample_rate": 44100,
     "offset": 0.0
   },
@@ -405,15 +466,17 @@ Use:
 frame = round((time_seconds + audio_offset_seconds) * fps)
 ```
 
-The offset exists because audio/video sync always finds a way to be annoying.
+The offset exists because audio/video sync always finds a way to be
+annoying.
 
 MP3 encoder delay and padding may create small sync disagreements between
-tools.  The offset field exists so this can be corrected without lying to the
-timeline.
+tools.  The offset field exists so this can be corrected without lying to
+the timeline.
 
 ## Sonic Annotator Integration
 
-The initial implementation should treat Sonic Annotator as an external command.
+The audio-file implementation should treat Sonic Annotator as an external
+command.
 
 Conceptual flow:
 
@@ -451,8 +514,61 @@ or:
 par-beatdown song.mp3 --preset full -o song.music.json
 ```
 
-The exact transform files and plugin choices can evolve without changing the
-timeline format.
+The exact transform files and plugin choices can evolve without changing
+the timeline format.
+
+## Tracker File Integration
+
+The tracker-file implementation should use libopenmpt directly.
+
+Conceptual flow:
+
+```
+par-beatdown
+  -> load module with libopenmpt
+  -> read structural timing and metadata
+  -> decode PCM only where needed
+  -> normalize and frame-align features
+  -> write song.music.json
+```
+
+The first tracker-file backend should focus on predictable structure:
+
+```
+duration
+format
+channels
+orders
+patterns
+rows
+tempo changes
+```
+
+This is enough to emit useful timing markers before trying to infer musical
+meaning from rendered audio.
+
+Possible tracker-derived events:
+
+```
+row
+pattern
+order
+tempo
+loop
+```
+
+Possible tracker-derived continuous features:
+
+```
+channel_activity
+sample_activity
+pcm_rms
+pcm_peak
+```
+
+The tracker backend should not pretend every row is a beat.  It should
+expose honest structural events first.  Later code can derive pulses or
+downsample rows into animation-friendly signals.
 
 ## ParAnimator Integration
 
@@ -570,9 +686,53 @@ Music is an overlay.
 
 ## Recommended First Implementation
 
-### Phase 1: Sonic Annotator Runner
+### Phase 1: libopenmpt Tracker Reader
 
-Implement par-beatdown as a wrapper around Sonic Annotator.
+Implement par-beatdown as a libopenmpt-based tracker-file reader.
+
+Input:
+
+```
+song.xm
+```
+
+Output:
+
+```
+song.music.json
+```
+
+Extract only:
+
+```
+duration
+format
+channel count
+row or pattern events
+optional PCM RMS envelope
+```
+
+This is enough to prove the pipeline.
+
+The first version should be boring.  Boring is how software earns the right
+to become weird later.
+
+### Phase 2: Timeline Writer
+
+Write tracker-derived data to the neutral JSON timeline.
+
+At this phase, the important work is:
+
+* stable parsing
+* stable frame conversion
+* stable metadata
+* clear error messages
+* no attempt to solve music theory
+
+### Phase 3: Sonic Annotator Runner
+
+Implement the optional audio-file feature as a wrapper around Sonic
+Annotator.
 
 Input:
 
@@ -594,24 +754,7 @@ beat events
 rms or amplitude envelope
 ```
 
-This is enough to prove the pipeline.
-
-The first version should be boring.  Boring is how software earns the right to
-become weird later.
-
-### Phase 2: CSV Import and Timeline Writer
-
-Parse Sonic Annotator output and write the neutral JSON timeline.
-
-At this phase, the important work is:
-
-* stable parsing
-* stable frame conversion
-* stable metadata
-* clear error messages
-* no attempt to solve music theory
-
-### Phase 3: Keyframe Preprocessor
+### Phase 4: Keyframe Preprocessor
 
 Before modifying ParAnimator, add a small converter:
 
@@ -635,9 +778,10 @@ for each beat:
 
 This keeps everything inspectable.
 
-It also avoids adding abstractions before knowing which ones are not stupid.
+It also avoids adding abstractions before knowing which ones are not
+stupid.
 
-### Phase 4: Native External Timeline Support
+### Phase 5: Native External Timeline Support
 
 Add ParAnimator support for:
 
@@ -652,7 +796,7 @@ clamping
 
 At this point, the keyframe preprocessor becomes optional.
 
-### Phase 5: More Features
+### Phase 6: More Features
 
 Add:
 
@@ -725,6 +869,8 @@ ffmpeg -r 30 -i frames/frame%05d.png -i song.mp3 \
 
 par-beatdown should produce useful errors for common failures:
 
+* Tracker file cannot be loaded.
+* libopenmpt reports an unsupported module format.
 * Sonic Annotator is not installed.
 * Required Vamp plugin is missing.
 * Requested preset cannot be resolved.
@@ -743,6 +889,8 @@ punishment enough.
 ## Architecture Rule
 
 ParAnimator should consume neutral timeline data.
+
+It should not consume libopenmpt.
 
 It should not consume Sonic Annotator.
 
