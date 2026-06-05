@@ -37,4 +37,8 @@ misc_group_sources("Git" FILES
     ".gitignore"
     ".gitmodules")
 misc_group_sources("VcPkg" FILES
-    "vcpkg.json")
+    "vcpkg-configuration.json"
+    "vcpkg.json"
+    "vcpkg-ports/sonic-annotator/portfile.cmake"
+    "vcpkg-ports/sonic-annotator/usage"
+    "vcpkg-ports/sonic-annotator/vcpkg.json")

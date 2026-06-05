@@ -4,6 +4,7 @@
   "description": "Audio feature extraction for ParAnimator timelines",
   "version-semver": "1.0.0",
   "dependencies": [
-    "gtest"
+    "gtest",
+    "sonic-annotator"
   ]
 }

@@ -1,0 +1,8 @@
+{
+  "name": "sonic-annotator",
+  "version-semver": "1.7.0",
+  "description": "Batch tool for feature extraction and annotation of audio files using Vamp plugins",
+  "homepage": "https://vamp-plugins.org/sonic-annotator/",
+  "license": "GPL-2.0-or-later",
+  "supports": "(windows & x64) | (linux & x64) | osx"
+}

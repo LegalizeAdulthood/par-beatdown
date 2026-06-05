@@ -1,0 +1,6 @@
+sonic-annotator is installed under:
+
+    tools/sonic-annotator
+
+This port installs the Sonic Annotator host executable only. Vamp plugins
+must be installed separately.
