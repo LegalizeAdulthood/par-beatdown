@@ -19,7 +19,8 @@
     "tracker-file": {
       "description": "Enable tracker module file analysis through libopenmpt.",
       "dependencies": [
-        "libopenmpt"
+        "libopenmpt",
+        "nlohmann-json"
       ]
     }
   }

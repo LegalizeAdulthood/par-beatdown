@@ -1,10 +1,10 @@
-#include "ParBeatDownCore/version.h"
+#include "ParBeatdown/Version.h"
 
 #ifdef PAR_BEATDOWN_ENABLE_TRACKER_FILE
 #include <libopenmpt/libopenmpt.hpp>
 #endif
 
-namespace ParBeatDownCore
+namespace par_beatdown
 {
 
 const char *version()
@@ -19,4 +19,4 @@ std::uint32_t tracker_library_version()
 }
 #endif
 
-} // namespace ParBeatDownCore
+} // namespace par_beatdown

@@ -1,6 +1,6 @@
-#include <ParBeatDownCore/version.h>
+#include <ParBeatdown/Version.h>
 
 int main()
 {
-    return ParBeatDownCore::version()[0] == '\0' ? 1 : 0;
+    return par_beatdown::version()[0] == '\0' ? 1 : 0;
 }

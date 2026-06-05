@@ -16,6 +16,7 @@ option(PAR_BEATDOWN_ENABLE_AUDIO_FILE "Enable ordinary audio file support" OFF)
 
 if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
     find_package(libopenmpt CONFIG REQUIRED)
+    find_package(nlohmann_json CONFIG REQUIRED)
 endif()
 
 include(CTest)

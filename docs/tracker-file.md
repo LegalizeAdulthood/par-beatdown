@@ -370,23 +370,6 @@ Diagnostics {
 
 ## Implementation Slices
 
-### Slice 1: JSON Dependency And Schema Shell
-
-Add `nlohmann-json` to the `tracker-file` vcpkg feature.
-
-Add a small JSON writer module in `ParBeatDownCore`.
-
-The slice should:
-
-* add nlohmann-json to `vcpkg.json`
-* add CMake `find_package(nlohmann_json CONFIG REQUIRED)`
-* link `nlohmann_json::nlohmann_json`
-* define schema constants
-* write a minimal valid `TrackerTimeline`
-* test that nlohmann-json can parse the emitted JSON
-
-Remove this slice when the minimal schema object is emitted and tested.
-
 ### Slice 2: Load Tracker Source
 
 Create a `TrackerModule` wrapper around `openmpt::module`.
