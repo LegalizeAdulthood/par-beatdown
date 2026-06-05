@@ -60,4 +60,50 @@ TEST(ParBeatDownCore, trackerModuleLoadsSource)
     ASSERT_EQ(source.subsong_count, json.at("source").at("subsong_count"));
     ASSERT_EQ(source.log.size(), json.at("diagnostics").at("log").size());
 }
+
+TEST(ParBeatDownCore, trackerModuleLoadsStaticStructure)
+{
+    const auto file = std::string{PAR_BEATDOWN_TEST_DATA_DIR} + "/my_neighbors_kid_is_an_internet_addict.xm";
+    const par_beatdown::TrackerModule module{file};
+    const auto &source = module.source();
+    const auto &info = module.module_info();
+
+    ASSERT_GT(info.channel_count, 0);
+    ASSERT_GT(info.order_count, 0);
+    ASSERT_GT(info.pattern_count, 0);
+    ASSERT_GT(info.sample_count, 0);
+    ASSERT_FALSE(info.metadata.empty());
+    ASSERT_EQ(static_cast<std::size_t>(source.subsong_count), info.subsongs.size());
+    ASSERT_EQ(static_cast<std::size_t>(info.order_count), info.orders.size());
+    ASSERT_EQ(static_cast<std::size_t>(info.pattern_count), info.patterns.size());
+
+    const auto json = nlohmann::json::parse(par_beatdown::tracker_timeline_json(module));
+    ASSERT_EQ(info.channel_count, json.at("module").at("channel_count"));
+    ASSERT_EQ(info.order_count, json.at("module").at("order_count"));
+    ASSERT_EQ(info.pattern_count, json.at("module").at("pattern_count"));
+    ASSERT_EQ(info.instrument_count, json.at("module").at("instrument_count"));
+    ASSERT_EQ(info.sample_count, json.at("module").at("sample_count"));
+    ASSERT_EQ(info.metadata.size(), json.at("module").at("metadata").size());
+    ASSERT_EQ(info.subsongs.size(), json.at("module").at("subsongs").size());
+    ASSERT_EQ(info.orders.size(), json.at("module").at("orders").size());
+    ASSERT_EQ(info.patterns.size(), json.at("module").at("patterns").size());
+    ASSERT_EQ("pattern", json.at("module").at("orders").at(0).at("kind"));
+    ASSERT_GT(json.at("module").at("patterns").at(0).at("row_count").get<int>(), 0);
+}
+
+TEST(ParBeatDownCore, trackerTimelineCanOmitOptionalModule)
+{
+    const auto file = std::string{PAR_BEATDOWN_TEST_DATA_DIR} + "/my_neighbors_kid_is_an_internet_addict.xm";
+    const par_beatdown::TrackerModule module{file};
+    par_beatdown::TrackerTimelineSettings settings;
+    settings.include_module = false;
+
+    const auto json = nlohmann::json::parse(par_beatdown::tracker_timeline_json(module, settings));
+
+    ASSERT_EQ(file, json.at("source").at("file"));
+    ASSERT_EQ(0, json.at("module").at("channel_count"));
+    ASSERT_TRUE(json.at("module").at("metadata").empty());
+    ASSERT_TRUE(json.at("module").at("orders").empty());
+    ASSERT_TRUE(json.at("module").at("patterns").empty());
+}
 #endif

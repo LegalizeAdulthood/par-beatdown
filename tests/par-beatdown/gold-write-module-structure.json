@@ -1,0 +1,455 @@
+{
+  "schema": "par-beatdown.tracker-timeline",
+  "version": 1,
+  "generator": {
+    "name": "par-beatdown",
+    "version": "0.1.0",
+    "backend": "tracker-file",
+    "library": "libopenmpt",
+    "library_version": "0.8.6"
+  },
+  "source": {
+    "file": "data/my_neighbors_kid_is_an_internet_addict.xm",
+    "size_bytes": 6414784,
+    "format": "xm",
+    "title": "",
+    "duration_seconds": 163.59525000000195,
+    "selected_subsong": 0,
+    "subsong_count": 1
+  },
+  "render": {
+    "fps": 30.0,
+    "sample_rate": 48000,
+    "channels": 2,
+    "offset_seconds": 0.0,
+    "feature_hop_seconds": 0.03333333333333333
+  },
+  "module": {
+    "channel_count": 4,
+    "order_count": 29,
+    "pattern_count": 24,
+    "instrument_count": 26,
+    "sample_count": 25,
+    "metadata": [
+      {
+        "key": "type",
+        "value": "xm"
+      },
+      {
+        "key": "type_long",
+        "value": "FastTracker 2 v1.04"
+      },
+      {
+        "key": "originaltype",
+        "value": ""
+      },
+      {
+        "key": "originaltype_long",
+        "value": ""
+      },
+      {
+        "key": "container",
+        "value": ""
+      },
+      {
+        "key": "container_long",
+        "value": ""
+      },
+      {
+        "key": "tracker",
+        "value": "MilkyTracker 1.03.00"
+      },
+      {
+        "key": "artist",
+        "value": ""
+      },
+      {
+        "key": "title",
+        "value": ""
+      },
+      {
+        "key": "date",
+        "value": ""
+      },
+      {
+        "key": "message",
+        "value": "Back Break\nDanger\nMassive\nBass\nStep\nBrass\nPad\nRhodes\nWub Bass\nBack Break 2\nAmen f#4\nMy sound rude boy\nPull up\nBloodclart\nWorries\nTrumpet\nBadman\nDrop the bass\n808\nSynth chord\nBouncer Vocals\nHard kick\nHot Pants\nInternet\nAAAAAAAAAAAAAAAAAAAAAA\nInsta: @plan_beanie\n"
+      },
+      {
+        "key": "message_raw",
+        "value": ""
+      },
+      {
+        "key": "warnings",
+        "value": ""
+      }
+    ],
+    "subsongs": [
+      {
+        "index": 0,
+        "name": "",
+        "restart_order": 0,
+        "restart_row": 0
+      }
+    ],
+    "orders": [
+      {
+        "index": 0,
+        "pattern": 0,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 1,
+        "pattern": 0,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 2,
+        "pattern": 1,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 3,
+        "pattern": 2,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 4,
+        "pattern": 3,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 5,
+        "pattern": 4,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 6,
+        "pattern": 5,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 7,
+        "pattern": 4,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 8,
+        "pattern": 5,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 9,
+        "pattern": 6,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 10,
+        "pattern": 7,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 11,
+        "pattern": 7,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 12,
+        "pattern": 8,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 13,
+        "pattern": 9,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 14,
+        "pattern": 16,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 15,
+        "pattern": 10,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 16,
+        "pattern": 11,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 17,
+        "pattern": 12,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 18,
+        "pattern": 13,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 19,
+        "pattern": 14,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 20,
+        "pattern": 15,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 21,
+        "pattern": 15,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 22,
+        "pattern": 17,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 23,
+        "pattern": 17,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 24,
+        "pattern": 18,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 25,
+        "pattern": 19,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 26,
+        "pattern": 21,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 27,
+        "pattern": 22,
+        "name": "",
+        "kind": "pattern"
+      },
+      {
+        "index": 28,
+        "pattern": 23,
+        "name": "",
+        "kind": "pattern"
+      }
+    ],
+    "patterns": [
+      {
+        "index": 0,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 1,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 2,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 3,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 4,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 5,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 6,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 7,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 8,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 9,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 10,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 11,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 12,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 13,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 14,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 15,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 16,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 17,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 18,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 19,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 20,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 21,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 22,
+        "name": "",
+        "row_count": 64,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      },
+      {
+        "index": 23,
+        "name": "",
+        "row_count": 41,
+        "rows_per_beat": 4,
+        "rows_per_measure": 16
+      }
+    ]
+  },
+  "timeline": {
+    "duration_seconds": 0.0,
+    "frames": 0,
+    "first_frame": 0,
+    "last_frame": -1
+  },
+  "events": [],
+  "features": [],
+  "diagnostics": {
+    "warnings": [],
+    "unsupported": [],
+    "log": []
+  }
+}

@@ -20,6 +20,7 @@ struct TrackerTimelineSettings
     int channels{2};
     double offset_seconds{0.0};
     double feature_hop_seconds{1.0 / 30.0};
+    bool include_module{true};
 };
 
 struct TrackerSourceInfo
@@ -34,6 +35,50 @@ struct TrackerSourceInfo
     std::vector<std::string> log;
 };
 
+struct TrackerMetadataItem
+{
+    std::string key;
+    std::string value;
+};
+
+struct TrackerSubsongInfo
+{
+    int index{0};
+    std::string name;
+    int restart_order{0};
+    int restart_row{0};
+};
+
+struct TrackerOrderInfo
+{
+    int index{0};
+    int pattern{0};
+    std::string name;
+    std::string kind;
+};
+
+struct TrackerPatternInfo
+{
+    int index{0};
+    std::string name;
+    int row_count{0};
+    int rows_per_beat{0};
+    int rows_per_measure{0};
+};
+
+struct TrackerModuleInfo
+{
+    int channel_count{0};
+    int order_count{0};
+    int pattern_count{0};
+    int instrument_count{0};
+    int sample_count{0};
+    std::vector<TrackerMetadataItem> metadata;
+    std::vector<TrackerSubsongInfo> subsongs;
+    std::vector<TrackerOrderInfo> orders;
+    std::vector<TrackerPatternInfo> patterns;
+};
+
 class TrackerModule
 {
 public:
@@ -45,6 +90,7 @@ public:
     ~TrackerModule();
 
     const TrackerSourceInfo &source() const;
+    const TrackerModuleInfo &module_info() const;
 
 private:
     struct Impl;

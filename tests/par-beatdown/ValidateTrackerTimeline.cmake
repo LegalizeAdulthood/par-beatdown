@@ -11,8 +11,15 @@ foreach(required_name IN ITEMS
     endif()
 endforeach()
 
+set(command_arguments "${PAR_BEATDOWN_INPUT}" -o "${PAR_BEATDOWN_OUTPUT}")
+if(DEFINED PAR_BEATDOWN_INCLUDE)
+    foreach(include_name IN LISTS PAR_BEATDOWN_INCLUDE)
+        list(APPEND command_arguments --include "${include_name}")
+    endforeach()
+endif()
+
 execute_process(
-    COMMAND "${PAR_BEATDOWN_TOOL}" "${PAR_BEATDOWN_INPUT}" -o "${PAR_BEATDOWN_OUTPUT}"
+    COMMAND "${PAR_BEATDOWN_TOOL}" ${command_arguments}
     WORKING_DIRECTORY "${PAR_BEATDOWN_SOURCE_DIR}"
     RESULT_VARIABLE result
     OUTPUT_VARIABLE stdout

@@ -53,6 +53,32 @@ Rules:
 * Output uses `dump(2)` plus one final newline.
 * Tests parse output with nlohmann-json before comparing fields.
 
+## Integration Tests
+
+Tool integration tests live under `tests/par-beatdown`.
+
+Rules:
+
+* keep global fields present in every output
+* use `--include <section>` to choose non-global JSON sections
+* add one `gold-<test-case>.json` per integration use case
+* do not grow old gold files when a later slice adds a new section
+* label all tool integration tests `par-beatdown`
+
+Global fields:
+
+* `schema`
+* `version`
+* `generator`
+* `source`
+* `render`
+* `diagnostics`
+
+Current include sections:
+
+* `source` writes only global fields
+* `module` also writes `module`
+
 ## Schema V1
 
 Human-readable schema:
@@ -370,48 +396,7 @@ Diagnostics {
 
 ## Implementation Slices
 
-### Slice 3: Static Module Structure
-
-Populate the `module` object.
-
-The slice should:
-
-* read channel, order, pattern, instrument, and sample counts
-* read metadata key and value pairs
-* read all subsong names and restart positions
-* read the order list
-* classify order entries as `pattern`, `skip`, or `stop`
-* read pattern names and row counts
-* read rows-per-beat and rows-per-measure
-
-The integration test should:
-
-* keep `par-beatdown.writeTrackerTimeline` under `tests/par-beatdown`
-* update `gold-write-tracker-timeline.json`
-* validate non-zero module counts through the gold JSON
-* validate metadata, subsongs, orders, and patterns through the gold JSON
-
-Use these libopenmpt calls:
-
-* `get_num_channels`
-* `get_num_orders`
-* `get_num_patterns`
-* `get_num_instruments`
-* `get_num_samples`
-* `get_subsong_names`
-* `get_restart_order`
-* `get_restart_row`
-* `get_order_pattern`
-* `is_order_skip_entry`
-* `is_order_stop_entry`
-* `get_pattern_num_rows`
-* `get_pattern_rows_per_beat`
-* `get_pattern_rows_per_measure`
-
-Remove this slice when metadata, subsongs, orders, and patterns are
-written and covered by unit and integration tests.
-
-### Slice 4: Timeline Clock
+### Slice 3: Timeline Clock
 
 Convert tracker positions to seconds and frames.
 
@@ -427,7 +412,8 @@ The slice should:
 
 The integration test should:
 
-* update `gold-write-tracker-timeline.json`
+* add `gold-write-timeline-clock.json`
+* run the tool with `--include timeline`
 * validate `timeline.frames`, `first_frame`, and `last_frame`
 * validate order `time_seconds` and `frame` fields
 * validate generated `order`, `pattern`, and `row` events
@@ -451,7 +437,7 @@ frame = round((time_seconds + offset_seconds) * fps)
 Remove this slice when row and order events have stable frame values in
 unit and integration tests.
 
-### Slice 5: Pattern Command Events
+### Slice 4: Pattern Command Events
 
 Convert tracker cell commands into neutral events.
 
@@ -466,7 +452,8 @@ The slice should:
 
 The integration test should:
 
-* update `gold-write-tracker-timeline.json`
+* add `gold-write-pattern-events.json`
+* run the tool with `--include events`
 * validate at least one `note` event from the XM fixture
 * validate at least one `effect` event from the XM fixture
 * validate formatted command text for a stable fixture cell
@@ -484,7 +471,7 @@ instead of guessing.
 Remove this slice when note and effect events are generated from the XM
 test file and covered by unit and integration tests.
 
-### Slice 6: Rendered Feature Frames
+### Slice 5: Rendered Feature Frames
 
 Add optional PCM-derived feature frames.
 
@@ -500,7 +487,8 @@ The slice should:
 
 The integration test should:
 
-* update `gold-write-tracker-timeline.json` for enabled features
+* add `gold-write-feature-frames.json`
+* run the tool with `--include features`
 * validate feature frame count for the default hop interval
 * validate stable RMS, peak, active channel, and VU fields
 * add a tool integration case for disabled features
@@ -514,7 +502,7 @@ Use these libopenmpt calls:
 Remove this slice when `features` is populated and covered by unit and
 integration tests.
 
-### Slice 7: Command Line Options
+### Slice 6: Command Line Options
 
 Extend the minimal tracker writer in `tools/par-beatdown`.
 
@@ -540,11 +528,11 @@ The integration test should:
 * add a tool integration case for `--fps`
 * add a tool integration case for `--offset`
 * add a tool integration case for `--feature-hop`
-* validate output JSON changes through gold files or field checks
+* use dedicated gold files or field checks for each option
 
 Remove this slice when the tool has the listed options and error paths.
 
-### Slice 8: JSON Field Tests
+### Slice 7: JSON Field Tests
 
 Add focused tests for generated JSON.
 
@@ -561,13 +549,13 @@ The slice should:
 The integration test should:
 
 * parse the generated output with a CMake-driven helper
-* keep byte-for-byte gold comparison for stable full output
+* keep byte-for-byte gold comparison for each slice output
 * report the first mismatched field when field checks fail
 * keep all tool integration tests labeled `par-beatdown`
 
 Remove this slice when generated output is tested at field level.
 
-### Slice 9: Diagnostics And Errors
+### Slice 8: Diagnostics And Errors
 
 Make failure modes useful.
 
@@ -590,7 +578,7 @@ The integration test should:
 
 Remove this slice when common error paths are tested.
 
-### Slice 10: Future ParAnimator Adapter
+### Slice 9: Future ParAnimator Adapter
 
 Do not implement this in the tracker-file JSON pipeline.
 
@@ -618,10 +606,11 @@ The sidecar metadata is:
 data/my_neighbors_kid_is_an_internet_addict.md
 ```
 
-The tool integration gold timeline is:
+Current tool integration gold files are:
 
 ```
-tests/par-beatdown/gold-write-tracker-timeline.json
+tests/par-beatdown/gold-write-tracker-source.json
+tests/par-beatdown/gold-write-module-structure.json
 ```
 
 The fixture is useful because it is XM, public domain, and large enough to
