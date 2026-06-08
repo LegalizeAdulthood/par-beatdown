@@ -71,6 +71,7 @@ Rules:
 * use `--include <section>` to choose non-global JSON sections
 * add one `gold-<test-case>.json` per integration use case
 * do not grow old gold files when a later slice adds a new section
+* run field checks before comparing generated output to gold JSON
 * normalize line endings before comparing generated output to gold JSON
 * label all tool integration tests `par-beatdown`
 
@@ -408,30 +409,7 @@ Diagnostics {
 
 ## Implementation Slices
 
-### Slice 1: JSON Field Tests
-
-Add focused tests for generated JSON.
-
-The slice should:
-
-* parse the output with nlohmann-json
-* check root schema and version
-* check source format and title
-* check module counts are non-zero
-* check at least one order event exists
-* check frame conversion with a known fps
-* keep the CMake-script gold integration test updated
-
-The integration test should:
-
-* parse the generated output with a CMake-driven helper
-* keep line-ending-normalized gold comparison for each slice output
-* report the first mismatched field when field checks fail
-* keep all tool integration tests labeled `par-beatdown`
-
-Remove this slice when generated output is tested at field level.
-
-### Slice 2: Diagnostics And Errors
+### Slice 1: Diagnostics And Errors
 
 Make failure modes useful.
 
@@ -454,7 +432,7 @@ The integration test should:
 
 Remove this slice when common error paths are tested.
 
-### Slice 3: Future ParAnimator Adapter
+### Slice 2: Future ParAnimator Adapter
 
 Do not implement this in the tracker-file JSON pipeline.
 
@@ -491,6 +469,7 @@ tests/par-beatdown/gold-write-timeline-clock.json
 tests/par-beatdown/gold-write-pattern-events.json
 tests/par-beatdown/gold-write-feature-frames.json
 tests/par-beatdown/gold-write-custom-fps.json
+tests/par-beatdown/gold-write-timeline-custom-fps.json
 tests/par-beatdown/gold-write-sync-offset.json
 tests/par-beatdown/gold-write-custom-feature-hop.json
 ```

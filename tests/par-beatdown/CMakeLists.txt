@@ -33,6 +33,7 @@ if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
     add_par_beatdown_gold_test(write-pattern-events events)
     add_par_beatdown_gold_test(write-feature-frames features)
     add_par_beatdown_gold_test(write-custom-fps source FPS 24)
+    add_par_beatdown_gold_test(write-timeline-custom-fps timeline FPS 24)
     add_par_beatdown_gold_test(write-sync-offset source OFFSET 1.25)
     add_par_beatdown_gold_test(write-custom-feature-hop features
         FEATURE_HOP 0.5)
