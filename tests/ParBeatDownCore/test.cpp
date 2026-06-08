@@ -167,4 +167,34 @@ TEST(ParBeatDownCore, trackerTimelineBuildsPatternEvents)
     ASSERT_TRUE(json.at("events").at(0).contains("channel"));
     ASSERT_TRUE(json.at("events").at(0).contains("text"));
 }
+
+TEST(ParBeatDownCore, trackerTimelineBuildsFeatureFrames)
+{
+    const auto file = std::string{PAR_BEATDOWN_TEST_DATA_DIR} + "/my_neighbors_kid_is_an_internet_addict.xm";
+    par_beatdown::TrackerModule module{file};
+    par_beatdown::TrackerTimelineSettings settings;
+    settings.include_module = false;
+    settings.include_features = true;
+
+    const auto features = module.feature_frames(settings);
+    ASSERT_FALSE(features.empty());
+    ASSERT_EQ(4911U, features.size());
+    ASSERT_EQ(0.0, features.front().time_seconds);
+    ASSERT_EQ(0, features.front().frame);
+    ASSERT_NEAR(0.104656, features.front().rms, 0.000001);
+    ASSERT_NEAR(0.255160, features.front().peak, 0.000001);
+    ASSERT_EQ(3, features.front().active_channels);
+    ASSERT_EQ(static_cast<std::size_t>(module.module_info().channel_count), features.front().channel_vu_mono.size());
+    ASSERT_NEAR(1.314777, features.front().channel_vu_mono.at(0), 0.000001);
+
+    const auto json = nlohmann::json::parse(par_beatdown::tracker_timeline_json(module, settings));
+    ASSERT_EQ(0, json.at("module").at("channel_count"));
+    ASSERT_TRUE(json.at("events").empty());
+    ASSERT_FALSE(json.at("features").empty());
+    ASSERT_EQ(features.size(), json.at("features").size());
+    ASSERT_EQ(0, json.at("features").at(0).at("frame"));
+    ASSERT_DOUBLE_EQ(0.104656, json.at("features").at(0).at("rms").get<double>());
+    ASSERT_DOUBLE_EQ(0.25516, json.at("features").at(0).at("peak").get<double>());
+    ASSERT_TRUE(json.at("features").at(0).contains("channel_vu_mono"));
+}
 #endif

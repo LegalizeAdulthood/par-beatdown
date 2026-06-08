@@ -66,6 +66,11 @@ int frame_at(double seconds, const TrackerTimelineSettings &settings)
     return static_cast<int>(std::llround((seconds + settings.offset_seconds) * settings.fps));
 }
 
+double round_json_number(double value)
+{
+    return std::round(value * 1000000.0) / 1000000.0;
+}
+
 std::string trim_pattern_text(std::string text)
 {
     while (!text.empty() && text.front() == ' ')
@@ -257,6 +262,29 @@ nlohmann::ordered_json make_events_json(const std::vector<TrackerTimelineEvent> 
     return events;
 }
 
+nlohmann::ordered_json make_features_json(const std::vector<TrackerFeatureFrame> *source_features)
+{
+    auto features = nlohmann::ordered_json::array();
+    if (source_features == nullptr)
+    {
+        return features;
+    }
+
+    for (const auto &feature : *source_features)
+    {
+        auto channel_vu_mono = nlohmann::ordered_json::array();
+        for (const auto value : feature.channel_vu_mono)
+        {
+            channel_vu_mono.push_back(round_json_number(value));
+        }
+        features.push_back(
+            nlohmann::ordered_json{{"time_seconds", round_json_number(feature.time_seconds)}, {"frame", feature.frame},
+                {"rms", round_json_number(feature.rms)}, {"peak", round_json_number(feature.peak)},
+                {"active_channels", feature.active_channels}, {"channel_vu_mono", channel_vu_mono}});
+    }
+    return features;
+}
+
 nlohmann::ordered_json make_diagnostics_json(const TrackerSourceInfo *source)
 {
     auto log = nlohmann::ordered_json::array();
@@ -273,7 +301,8 @@ nlohmann::ordered_json make_diagnostics_json(const TrackerSourceInfo *source)
 }
 
 std::string dump_tracker_timeline(const TrackerTimelineSettings &settings, const TrackerSourceInfo *source,
-    const TrackerModuleInfo *module, const TrackerClockInfo *clock, const std::vector<TrackerTimelineEvent> *events)
+    const TrackerModuleInfo *module, const TrackerClockInfo *clock, const std::vector<TrackerTimelineEvent> *events,
+    const std::vector<TrackerFeatureFrame> *features)
 {
     nlohmann::ordered_json root{{"schema", tracker_timeline_schema}, {"version", tracker_timeline_schema_version},
         {"generator",
@@ -285,7 +314,7 @@ std::string dump_tracker_timeline(const TrackerTimelineSettings &settings, const
                 {"channels", settings.channels}, {"offset_seconds", settings.offset_seconds},
                 {"feature_hop_seconds", settings.feature_hop_seconds}}},
         {"module", make_module_json(module, clock)}, {"timeline", make_timeline_json(clock)},
-        {"events", make_events_json(events)}, {"features", nlohmann::ordered_json::array()},
+        {"events", make_events_json(events)}, {"features", make_features_json(features)},
         {"diagnostics", make_diagnostics_json(source)}};
 
     return root.dump(2) + "\n";
@@ -304,6 +333,7 @@ struct TrackerModule::Impl
     void load_module_info();
     TrackerClockInfo make_clock_info(const TrackerTimelineSettings &settings) const;
     std::vector<TrackerTimelineEvent> make_pattern_events(const TrackerTimelineSettings &settings) const;
+    std::vector<TrackerFeatureFrame> make_feature_frames(const TrackerTimelineSettings &settings);
 
     std::string file_;
     std::uintmax_t size_bytes_;
@@ -545,6 +575,57 @@ std::vector<TrackerTimelineEvent> TrackerModule::Impl::make_pattern_events(
     return events;
 }
 
+std::vector<TrackerFeatureFrame> TrackerModule::Impl::make_feature_frames(const TrackerTimelineSettings &settings)
+{
+    std::vector<TrackerFeatureFrame> features;
+    if (settings.sample_rate <= 0 || settings.feature_hop_seconds <= 0.0)
+    {
+        return features;
+    }
+
+    module_.set_position_seconds(0.0);
+    const auto hop_samples = std::max<std::size_t>(1U,
+        static_cast<std::size_t>(
+            std::llround(settings.feature_hop_seconds * static_cast<double>(settings.sample_rate))));
+    auto samples = std::vector<float>(hop_samples * 2U);
+    std::uintmax_t rendered_samples = 0;
+
+    while (true)
+    {
+        const auto rendered = module_.read_interleaved_stereo(settings.sample_rate, hop_samples, samples.data());
+        if (rendered == 0U)
+        {
+            break;
+        }
+
+        double sum_squares = 0.0;
+        double peak = 0.0;
+        const auto sample_count = rendered * 2U;
+        for (std::size_t index = 0; index < sample_count; ++index)
+        {
+            const auto sample = static_cast<double>(samples[index]);
+            sum_squares += sample * sample;
+            peak = std::max(peak, std::abs(sample));
+        }
+
+        TrackerFeatureFrame feature;
+        feature.time_seconds = static_cast<double>(rendered_samples) / static_cast<double>(settings.sample_rate);
+        feature.frame = frame_at(feature.time_seconds, settings);
+        feature.rms = std::sqrt(sum_squares / static_cast<double>(sample_count));
+        feature.peak = peak;
+        feature.active_channels = module_.get_current_playing_channels();
+        feature.channel_vu_mono.reserve(static_cast<std::size_t>(module_info_.channel_count));
+        for (int channel = 0; channel < module_info_.channel_count; ++channel)
+        {
+            feature.channel_vu_mono.push_back(module_.get_current_channel_vu_mono(channel));
+        }
+        features.push_back(feature);
+        rendered_samples += rendered;
+    }
+
+    return features;
+}
+
 TrackerModule::TrackerModule(std::string file)
 try :
     impl_{std::make_unique<Impl>(std::move(file))}
@@ -581,9 +662,14 @@ std::vector<TrackerTimelineEvent> TrackerModule::pattern_events(const TrackerTim
     return impl_->make_pattern_events(settings);
 }
 
+std::vector<TrackerFeatureFrame> TrackerModule::feature_frames(const TrackerTimelineSettings &settings)
+{
+    return impl_->make_feature_frames(settings);
+}
+
 std::string tracker_timeline_schema_shell(const TrackerTimelineSettings &settings)
 {
-    return dump_tracker_timeline(settings, nullptr, nullptr, nullptr, nullptr);
+    return dump_tracker_timeline(settings, nullptr, nullptr, nullptr, nullptr, nullptr);
 }
 
 std::string tracker_timeline_json(TrackerModule &module, const TrackerTimelineSettings &settings)
@@ -596,8 +682,11 @@ std::string tracker_timeline_json(TrackerModule &module, const TrackerTimelineSe
         events.insert(events.end(), pattern_events.begin(), pattern_events.end());
     }
     const auto include_events = settings.include_timeline || settings.include_pattern_events;
+    const auto features =
+        settings.include_features ? module.feature_frames(settings) : std::vector<TrackerFeatureFrame>{};
     return dump_tracker_timeline(settings, &module.source(), settings.include_module ? &module.module_info() : nullptr,
-        settings.include_timeline ? &clock : nullptr, include_events ? &events : nullptr);
+        settings.include_timeline ? &clock : nullptr, include_events ? &events : nullptr,
+        settings.include_features ? &features : nullptr);
 }
 
 std::string tracker_timeline_from_file(const std::string &file, const TrackerTimelineSettings &settings)

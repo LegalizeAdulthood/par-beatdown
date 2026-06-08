@@ -29,6 +29,7 @@ void reset_optional_sections(ToolOptions &options)
         options.settings.include_module = false;
         options.settings.include_timeline = false;
         options.settings.include_pattern_events = false;
+        options.settings.include_features = false;
         options.include_filter_seen = true;
     }
 }
@@ -54,6 +55,11 @@ void add_include(ToolOptions &options, const std::string &name)
     if (name == "events")
     {
         options.settings.include_pattern_events = true;
+        return;
+    }
+    if (name == "features")
+    {
+        options.settings.include_features = true;
         return;
     }
     throw std::runtime_error{"unknown include section: " + name};

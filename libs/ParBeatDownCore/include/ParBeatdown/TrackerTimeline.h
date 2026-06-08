@@ -23,6 +23,7 @@ struct TrackerTimelineSettings
     bool include_module{true};
     bool include_timeline{false};
     bool include_pattern_events{false};
+    bool include_features{false};
 };
 
 struct TrackerSourceInfo
@@ -123,6 +124,16 @@ struct TrackerClockInfo
     std::vector<TrackerTimelineEvent> events;
 };
 
+struct TrackerFeatureFrame
+{
+    double time_seconds{0.0};
+    int frame{0};
+    double rms{0.0};
+    double peak{0.0};
+    int active_channels{0};
+    std::vector<double> channel_vu_mono;
+};
+
 class TrackerModule
 {
 public:
@@ -137,6 +148,7 @@ public:
     const TrackerModuleInfo &module_info() const;
     TrackerClockInfo clock_info(const TrackerTimelineSettings &settings);
     std::vector<TrackerTimelineEvent> pattern_events(const TrackerTimelineSettings &settings);
+    std::vector<TrackerFeatureFrame> feature_frames(const TrackerTimelineSettings &settings);
 
 private:
     struct Impl;

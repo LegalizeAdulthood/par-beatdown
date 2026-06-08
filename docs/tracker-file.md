@@ -81,6 +81,7 @@ Current include sections:
 * `module` also writes `module`
 * `timeline` also writes timeline clock data and timing events
 * `events` also writes tracker pattern command events
+* `features` also writes rendered PCM feature frames
 
 ## Schema V1
 
@@ -399,38 +400,7 @@ Diagnostics {
 
 ## Implementation Slices
 
-### Slice 3: Rendered Feature Frames
-
-Add optional PCM-derived feature frames.
-
-The slice should:
-
-* render stereo floating point PCM
-* sample at `feature_hop_seconds`
-* calculate RMS
-* calculate peak absolute amplitude
-* record active channel count
-* record per-channel mono VU values
-* allow features to be disabled for structure-only output
-
-The integration test should:
-
-* add `gold-write-feature-frames.json`
-* run the tool with `--include features`
-* validate feature frame count for the default hop interval
-* validate stable RMS, peak, active channel, and VU fields
-* add a tool integration case for disabled features
-
-Use these libopenmpt calls:
-
-* `read_interleaved_stereo`
-* `get_current_playing_channels`
-* `get_current_channel_vu_mono`
-
-Remove this slice when `features` is populated and covered by unit and
-integration tests.
-
-### Slice 4: Command Line Options
+### Slice 1: Command Line Options
 
 Extend the minimal tracker writer in `tools/par-beatdown`.
 
@@ -460,7 +430,7 @@ The integration test should:
 
 Remove this slice when the tool has the listed options and error paths.
 
-### Slice 5: JSON Field Tests
+### Slice 2: JSON Field Tests
 
 Add focused tests for generated JSON.
 
@@ -483,7 +453,7 @@ The integration test should:
 
 Remove this slice when generated output is tested at field level.
 
-### Slice 6: Diagnostics And Errors
+### Slice 3: Diagnostics And Errors
 
 Make failure modes useful.
 
@@ -506,7 +476,7 @@ The integration test should:
 
 Remove this slice when common error paths are tested.
 
-### Slice 7: Future ParAnimator Adapter
+### Slice 4: Future ParAnimator Adapter
 
 Do not implement this in the tracker-file JSON pipeline.
 
@@ -541,6 +511,7 @@ tests/par-beatdown/gold-write-tracker-source.json
 tests/par-beatdown/gold-write-module-structure.json
 tests/par-beatdown/gold-write-timeline-clock.json
 tests/par-beatdown/gold-write-pattern-events.json
+tests/par-beatdown/gold-write-feature-frames.json
 ```
 
 The fixture is useful because it is XM, public domain, and large enough to
