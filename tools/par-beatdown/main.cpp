@@ -3,6 +3,7 @@
 #ifdef PAR_BEATDOWN_ENABLE_TRACKER_FILE
 #include <ParBeatdown/TrackerTimeline.h>
 
+#include <cmath>
 #include <exception>
 #include <fstream>
 #include <iostream>
@@ -21,6 +22,44 @@ struct ToolOptions
     par_beatdown::TrackerTimelineSettings settings;
     bool include_filter_seen{false};
 };
+
+std::string require_value(int &index, int argc, char *argv[], const std::string &option)
+{
+    if (++index == argc)
+    {
+        throw std::runtime_error{"missing value after " + option};
+    }
+    return argv[index];
+}
+
+double parse_number(const std::string &option, const std::string &text)
+{
+    std::size_t parsed = 0;
+    double value = 0.0;
+    try
+    {
+        value = std::stod(text, &parsed);
+    }
+    catch (const std::exception &)
+    {
+        throw std::runtime_error{"invalid " + option + ": " + text};
+    }
+    if (parsed != text.size() || !std::isfinite(value))
+    {
+        throw std::runtime_error{"invalid " + option + ": " + text};
+    }
+    return value;
+}
+
+double parse_positive_number(const std::string &option, const std::string &text)
+{
+    const auto value = parse_number(option, text);
+    if (value <= 0.0)
+    {
+        throw std::runtime_error{"invalid " + option + ": value must be positive"};
+    }
+    return value;
+}
 
 void reset_optional_sections(ToolOptions &options)
 {
@@ -70,7 +109,7 @@ ToolOptions parse_options(int argc, char *argv[])
     ToolOptions options;
     if (argc < 2)
     {
-        return options;
+        throw std::runtime_error{"missing input path"};
     }
 
     options.input = argv[1];
@@ -79,19 +118,24 @@ ToolOptions parse_options(int argc, char *argv[])
         const std::string argument{argv[index]};
         if (argument == "-o")
         {
-            if (++index == argc)
-            {
-                throw std::runtime_error{"missing output path after -o"};
-            }
-            options.output = argv[index];
+            options.output = require_value(index, argc, argv, "-o");
         }
         else if (argument == "--include")
         {
-            if (++index == argc)
-            {
-                throw std::runtime_error{"missing section after --include"};
-            }
-            add_include(options, argv[index]);
+            add_include(options, require_value(index, argc, argv, "--include"));
+        }
+        else if (argument == "--fps")
+        {
+            options.settings.fps = parse_positive_number("--fps", require_value(index, argc, argv, "--fps"));
+        }
+        else if (argument == "--offset")
+        {
+            options.settings.offset_seconds = parse_number("--offset", require_value(index, argc, argv, "--offset"));
+        }
+        else if (argument == "--feature-hop")
+        {
+            options.settings.feature_hop_seconds =
+                parse_positive_number("--feature-hop", require_value(index, argc, argv, "--feature-hop"));
         }
         else
         {
@@ -106,7 +150,7 @@ int write_timeline(const ToolOptions &options)
 {
     if (options.input.empty())
     {
-        return par_beatdown::version()[0] == '\0' ? 1 : 0;
+        throw std::runtime_error{"missing input path"};
     }
     if (options.output.empty())
     {

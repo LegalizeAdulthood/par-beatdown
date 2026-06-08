@@ -36,6 +36,14 @@ Default output name:
 song.music.json
 ```
 
+Current command form:
+
+```
+par-beatdown song.xm -o song.music.json
+    [--include source|module|timeline|events|features]
+    [--fps 30] [--offset 0] [--feature-hop 0.0333333333]
+```
+
 The file should contain one selected subsong.  The first implementation
 may use libopenmpt's default subsong selection.  Later CLI options can
 select a specific subsong or emit one file per subsong.
@@ -400,37 +408,7 @@ Diagnostics {
 
 ## Implementation Slices
 
-### Slice 1: Command Line Options
-
-Extend the minimal tracker writer in `tools/par-beatdown`.
-
-The command already supports:
-
-```
-par-beatdown song.xm -o song.music.json
-```
-
-The slice should:
-
-* parse `--fps`
-* parse `--offset`
-* parse `--feature-hop`
-* reject missing input paths
-* reject missing `-o` output paths
-* report invalid arguments clearly
-* write the JSON file
-* return non-zero on failure
-
-The integration test should:
-
-* add a tool integration case for `--fps`
-* add a tool integration case for `--offset`
-* add a tool integration case for `--feature-hop`
-* use dedicated gold files or field checks for each option
-
-Remove this slice when the tool has the listed options and error paths.
-
-### Slice 2: JSON Field Tests
+### Slice 1: JSON Field Tests
 
 Add focused tests for generated JSON.
 
@@ -453,7 +431,7 @@ The integration test should:
 
 Remove this slice when generated output is tested at field level.
 
-### Slice 3: Diagnostics And Errors
+### Slice 2: Diagnostics And Errors
 
 Make failure modes useful.
 
@@ -476,7 +454,7 @@ The integration test should:
 
 Remove this slice when common error paths are tested.
 
-### Slice 4: Future ParAnimator Adapter
+### Slice 3: Future ParAnimator Adapter
 
 Do not implement this in the tracker-file JSON pipeline.
 
@@ -512,6 +490,9 @@ tests/par-beatdown/gold-write-module-structure.json
 tests/par-beatdown/gold-write-timeline-clock.json
 tests/par-beatdown/gold-write-pattern-events.json
 tests/par-beatdown/gold-write-feature-frames.json
+tests/par-beatdown/gold-write-custom-fps.json
+tests/par-beatdown/gold-write-sync-offset.json
+tests/par-beatdown/gold-write-custom-feature-hop.json
 ```
 
 The fixture is useful because it is XM, public domain, and large enough to

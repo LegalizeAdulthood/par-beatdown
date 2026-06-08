@@ -17,6 +17,15 @@ if(DEFINED PAR_BEATDOWN_INCLUDE)
         list(APPEND command_arguments --include "${include_name}")
     endforeach()
 endif()
+if(DEFINED PAR_BEATDOWN_FPS)
+    list(APPEND command_arguments --fps "${PAR_BEATDOWN_FPS}")
+endif()
+if(DEFINED PAR_BEATDOWN_OFFSET)
+    list(APPEND command_arguments --offset "${PAR_BEATDOWN_OFFSET}")
+endif()
+if(DEFINED PAR_BEATDOWN_FEATURE_HOP)
+    list(APPEND command_arguments --feature-hop "${PAR_BEATDOWN_FEATURE_HOP}")
+endif()
 
 execute_process(
     COMMAND "${PAR_BEATDOWN_TOOL}" ${command_arguments}
