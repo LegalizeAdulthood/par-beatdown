@@ -58,6 +58,12 @@ struct AdapterSettings
     double fps{30.0};
 };
 
+struct OutputSettings
+{
+    std::string mode;
+    std::string namespace_name;
+};
+
 struct Keyframe
 {
     int frame{0};
@@ -341,6 +347,23 @@ std::vector<Binding> parse_bindings(const Json &config)
     return bindings;
 }
 
+OutputSettings parse_output_settings(const Json &config)
+{
+    OutputSettings settings;
+    const auto &output = require_object_field(config, "output", "adapter config");
+    settings.mode = require_string_field(output, "mode", "adapter config.output");
+    settings.namespace_name = require_string_field(output, "namespace", "adapter config.output");
+    if (settings.mode != "overlay" && settings.mode != "merge")
+    {
+        throw std::runtime_error{"unsupported output mode: " + settings.mode};
+    }
+    if (settings.namespace_name.empty())
+    {
+        throw std::runtime_error{"missing adapter config.output.namespace"};
+    }
+    return settings;
+}
+
 AdapterSettings parse_adapter_settings(const Json &config)
 {
     AdapterSettings settings;
@@ -549,6 +572,108 @@ Json make_keyframes(const Json &timeline, const std::vector<Binding> &bindings, 
     return json_keyframes;
 }
 
+std::string keyframe_target(const Json &keyframe)
+{
+    return require_string_field(keyframe, "target", "generated keyframe");
+}
+
+std::string keyframe_source(const Json &keyframe)
+{
+    return require_string_field(keyframe, "source", "generated keyframe");
+}
+
+std::string keyframe_op(const Json &keyframe)
+{
+    return require_string_field(keyframe, "op", "generated keyframe");
+}
+
+std::string generated_track_id(const OutputSettings &settings, const std::string &target)
+{
+    return settings.namespace_name + "." + target;
+}
+
+Json make_track_key(const Json &keyframe)
+{
+    Json key = Json::object();
+    key["frame"] = require_integer_field(keyframe, "frame", "generated keyframe");
+    key["value"] = require_number_field(keyframe, "value", "generated keyframe");
+    return key;
+}
+
+Json make_generated_track(const OutputSettings &settings, const Json &first_keyframe)
+{
+    Json track = Json::object();
+    const auto target = keyframe_target(first_keyframe);
+    track["id"] = generated_track_id(settings, target);
+    track["parameter"] = target;
+    track["source"] = keyframe_source(first_keyframe);
+    track["op"] = keyframe_op(first_keyframe);
+    track["keys"] = Json::array();
+    return track;
+}
+
+Json make_generated_tracks(const Json &keyframes, const OutputSettings &settings)
+{
+    Json tracks = Json::array();
+    std::map<std::string, std::size_t> target_indices;
+    for (const auto &keyframe : keyframes)
+    {
+        const auto target = keyframe_target(keyframe);
+        auto target_index = target_indices.find(target);
+        if (target_index == target_indices.end())
+        {
+            target_index = target_indices.emplace(target, tracks.size()).first;
+            tracks.push_back(make_generated_track(settings, keyframe));
+        }
+
+        auto &track = tracks[target_index->second];
+        if (track["source"].get<std::string>() != keyframe_source(keyframe) ||
+            track["op"].get<std::string>() != keyframe_op(keyframe))
+        {
+            throw std::runtime_error{"generated target conflict: " + target};
+        }
+        track["keys"].push_back(make_track_key(keyframe));
+    }
+    return tracks;
+}
+
+void reject_generated_track_conflicts(const Json &base_tracks, const Json &generated_tracks)
+{
+    std::set<std::string> existing_ids;
+    std::set<std::string> existing_targets;
+    for (const auto &track : base_tracks)
+    {
+        if (!track.is_object())
+        {
+            throw std::runtime_error{"base animation track must be an object"};
+        }
+        const auto id = track.find("id");
+        if (id != track.end() && id->is_string())
+        {
+            existing_ids.insert(id->get<std::string>());
+        }
+        const auto parameter = track.find("parameter");
+        if (parameter != track.end() && parameter->is_string())
+        {
+            existing_targets.insert(parameter->get<std::string>());
+        }
+    }
+
+    for (const auto &track : generated_tracks)
+    {
+        const auto id = require_string_field(track, "id", "generated track");
+        if (existing_ids.find(id) != existing_ids.end())
+        {
+            throw std::runtime_error{"generated track id conflict: " + id};
+        }
+        const auto target = require_string_field(track, "parameter", "generated track");
+        if (existing_targets.find(target) != existing_targets.end())
+        {
+            throw std::runtime_error{"generated target conflict: " + target};
+        }
+    }
+}
+
 Json make_empty_overlay(const ToolOptions &options)
 {
     Json overlay = Json::object();
@@ -574,9 +699,44 @@ Json make_overlay(const ToolOptions &options, const Json &timeline, const Json &
     return overlay;
 }
 
+Json make_merged_animation(const Json &base, const Json &timeline, const Json &config)
+{
+    if (!base.is_object())
+    {
+        throw std::runtime_error{"base animation must be an object"};
+    }
+
+    auto merged = base;
+    auto &base_tracks = merged["tracks"];
+    if (!base_tracks.is_array())
+    {
+        throw std::runtime_error{"base animation tracks must be an array"};
+    }
+
+    const auto output_settings = parse_output_settings(config);
+    const auto keyframes = make_keyframes(timeline, parse_bindings(config), parse_adapter_settings(config));
+    const auto generated_tracks = make_generated_tracks(keyframes, output_settings);
+    reject_generated_track_conflicts(base_tracks, generated_tracks);
+    for (const auto &track : generated_tracks)
+    {
+        base_tracks.push_back(track);
+    }
+    return merged;
+}
+
+Json make_output(const ToolOptions &options, const Json &base, const Json &timeline, const Json &config)
+{
+    const auto output_settings = parse_output_settings(config);
+    if (output_settings.mode == "overlay")
+    {
+        return make_overlay(options, timeline, config);
+    }
+    return make_merged_animation(base, timeline, config);
+}
+
 int write_overlay(const ToolOptions &options)
 {
-    (void) read_json_file(options.base_animation, "base animation");
+    const auto base = read_json_file(options.base_animation, "base animation");
     const auto timeline = read_json_file(options.timeline, "timeline");
     const auto config = read_json_file(options.adapter_config, "adapter config");
     validate_adapter_config(config);
@@ -587,7 +747,7 @@ int write_overlay(const ToolOptions &options)
         throw std::runtime_error{"could not open output file: " + options.output};
     }
 
-    output << make_overlay(options, timeline, config).dump(2) << "\n";
+    output << make_output(options, base, timeline, config).dump(2) << "\n";
     return output ? 0 : 1;
 }
 

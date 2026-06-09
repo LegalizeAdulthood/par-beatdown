@@ -1,0 +1,57 @@
+{
+  "$schema": "https://legalize.github.io/paranimator/schemas/config.schema.json",
+  "parameter-catalogs": [
+    "input/core-catalog.json"
+  ],
+  "source": {
+    "file": "input/source.par",
+    "name": "Mandel_Demo"
+  },
+  "output": {
+    "directory": "output",
+    "par": "frames.par",
+    "entry": "frame-%04d",
+    "script": "frames.bat"
+  },
+  "video": "F6",
+  "num-frames": 8,
+  "tracks": [
+    {
+      "parameter": "maxiter",
+      "keys": [
+        {
+          "frame": 0,
+          "value": "100"
+        },
+        {
+          "frame": 7,
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "id": "music.color.brightness",
+      "parameter": "color.brightness",
+      "source": "music.note_pulse",
+      "op": "replace",
+      "keys": [
+        {
+          "frame": 0,
+          "value": 2.0
+        },
+        {
+          "frame": 1,
+          "value": 0.0
+        },
+        {
+          "frame": 4,
+          "value": 1.0
+        },
+        {
+          "frame": 5,
+          "value": 0.0
+        }
+      ]
+    }
+  ]
+}

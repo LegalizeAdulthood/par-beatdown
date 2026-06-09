@@ -115,9 +115,11 @@ Clamp {
 
 ### Output
 
-`mode` controls output shape.  Initial value: `overlay`.
+`mode` controls output shape.  Use `overlay` to write the neutral
+adapter overlay, or `merge` to append generated tracks to a base
+ParAnimator-style `tracks` array.
 
-`namespace` prefixes generated keyframe ids or comments.
+`namespace` prefixes generated track ids in merge output.
 
 ### Binding
 
@@ -231,25 +233,7 @@ Rules:
 
 ## Implementation Slices
 
-### Slice 1: Base Animation Merge
-
-Merge generated overlay data with a base animation config.
-
-The slice should:
-
-* preserve untouched base animation fields
-* append generated keyframes under the confirmed ParAnimator field
-* keep generated entries namespaced
-* reject conflicting generated ids or targets
-
-The integration tests should:
-
-* add `gold-merge-rms-overlay.json`
-* add `gold-merge-event-overlay.json`
-* add a generated id conflict error case
-* validate preserved base fields and appended generated keyframes
-
-### Slice 2: Native ParAnimator Plan
+### Slice 1: Native ParAnimator Plan
 
 Do not implement native ParAnimator timeline support here.
 
