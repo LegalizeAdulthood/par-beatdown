@@ -410,19 +410,8 @@ Diagnostics {
 
 ## Implementation Slices
 
-### Slice 1: Future ParAnimator Adapter
-
-Do not implement this in the tracker-file JSON pipeline.
-
-Later work may choose one of two paths:
-
-* add `par-beatdown --emit-paranimator-config`
-* add a separate `music2keyframes` or timeline adapter tool
-
-That later output must have its own schema and field documentation.
-That later plan must include integration tests for every adapter slice.
-
-Remove this slice when a separate ParAnimator adapter plan exists.
+All tracker-file implementation slices are complete.  Future ParAnimator
+adapter work is tracked in `docs/paranimator-adapter.md`.
 
 ## Test Data
 
