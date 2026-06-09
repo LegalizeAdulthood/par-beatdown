@@ -6,7 +6,8 @@ timeline JSON into ParAnimator-friendly keyframes.
 The first adapter should be a separate command-line tool:
 
 ```
-music2keyframes base-animation.json song.music.json -o music-animation.json
+music2keyframes base-animation.json song.music.json \
+    adapter.music2keyframes.json -o music-animation.json
 ```
 
 Do not add native ParAnimator music timeline support in this plan.  Keep
@@ -230,24 +231,7 @@ Rules:
 
 ## Implementation Slices
 
-### Slice 1: Tool Skeleton And Schemas
-
-Create `tools/music2keyframes`.
-
-The slice should:
-
-* parse base animation, timeline, adapter config, and output paths
-* validate adapter config schema and version
-* write an empty generated overlay with generator and source metadata
-* reject missing and unreadable inputs with short errors
-
-The integration tests should:
-
-* add `gold-write-empty-overlay.json`
-* add missing base animation, timeline, and config error cases
-* validate schema, version, generator, source, and empty keyframes
-
-### Slice 2: Continuous Feature Bindings
+### Slice 1: Continuous Feature Bindings
 
 Convert timeline feature frames into generated keyframes.
 
@@ -265,7 +249,7 @@ The integration tests should:
 * add an invalid continuous source error case
 * validate generated frame, target, op, value, and source fields
 
-### Slice 3: Sparse Event Pulses
+### Slice 2: Sparse Event Pulses
 
 Convert timeline events into pulse keyframes.
 
@@ -284,7 +268,7 @@ The integration tests should:
 * add an invalid event source error case
 * validate pulse frame, return frame, and generated values
 
-### Slice 4: Base Animation Merge
+### Slice 3: Base Animation Merge
 
 Merge generated overlay data with a base animation config.
 
@@ -302,7 +286,7 @@ The integration tests should:
 * add a generated id conflict error case
 * validate preserved base fields and appended generated keyframes
 
-### Slice 5: Native ParAnimator Plan
+### Slice 4: Native ParAnimator Plan
 
 Do not implement native ParAnimator timeline support here.
 

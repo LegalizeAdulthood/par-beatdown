@@ -14,9 +14,9 @@ project("${PAR_BEATDOWN_PROJECT_NAME}" CXX)
 option(PAR_BEATDOWN_ENABLE_TRACKER_FILE "Enable tracker file support" ON)
 option(PAR_BEATDOWN_ENABLE_AUDIO_FILE "Enable ordinary audio file support" OFF)
 
+find_package(nlohmann_json CONFIG REQUIRED)
 if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
     find_package(libopenmpt CONFIG REQUIRED)
-    find_package(nlohmann_json CONFIG REQUIRED)
 endif()
 
 include(CTest)
