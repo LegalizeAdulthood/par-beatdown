@@ -231,25 +231,7 @@ Rules:
 
 ## Implementation Slices
 
-### Slice 1: Continuous Feature Bindings
-
-Convert timeline feature frames into generated keyframes.
-
-The slice should:
-
-* support `music.rms` and `music.peak`
-* support `add`, `multiply`, and `replace`
-* apply `scale`, `offset`, and `clamp`
-* preserve timeline frame order
-
-The integration tests should:
-
-* add `gold-write-rms-keyframes.json`
-* add `gold-write-peak-keyframes.json`
-* add an invalid continuous source error case
-* validate generated frame, target, op, value, and source fields
-
-### Slice 2: Sparse Event Pulses
+### Slice 1: Sparse Event Pulses
 
 Convert timeline events into pulse keyframes.
 
@@ -268,7 +250,7 @@ The integration tests should:
 * add an invalid event source error case
 * validate pulse frame, return frame, and generated values
 
-### Slice 3: Base Animation Merge
+### Slice 2: Base Animation Merge
 
 Merge generated overlay data with a base animation config.
 
@@ -286,7 +268,7 @@ The integration tests should:
 * add a generated id conflict error case
 * validate preserved base fields and appended generated keyframes
 
-### Slice 4: Native ParAnimator Plan
+### Slice 3: Native ParAnimator Plan
 
 Do not implement native ParAnimator timeline support here.
 

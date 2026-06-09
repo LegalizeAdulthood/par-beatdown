@@ -1,0 +1,22 @@
+{
+  "schema": "par-beatdown.music2keyframes",
+  "version": 1,
+  "source": {
+    "timeline": "song.music.json",
+    "fps": 30.0,
+    "offset_seconds": 0.0
+  },
+  "output": {
+    "mode": "overlay",
+    "namespace": "music"
+  },
+  "bindings": [
+    {
+      "source": "music.centroid",
+      "target": "bad.value",
+      "op": "replace",
+      "scale": 1.0,
+      "offset": 0.0
+    }
+  ]
+}

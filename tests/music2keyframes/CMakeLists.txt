@@ -1,12 +1,23 @@
 function(add_music2keyframes_gold_test test_name)
+    cmake_parse_arguments(gold "" "CONFIG;KEYFRAME_COUNT;TIMELINE" "" ${ARGN})
     string(REPLACE "." "-" output_name "${test_name}")
+    if(NOT DEFINED gold_CONFIG)
+        set(gold_CONFIG tests/music2keyframes/adapter.music2keyframes.json)
+    endif()
+    if(NOT DEFINED gold_KEYFRAME_COUNT)
+        set(gold_KEYFRAME_COUNT 0)
+    endif()
+    if(NOT DEFINED gold_TIMELINE)
+        set(gold_TIMELINE tests/par-beatdown/gold-write-tracker-source.json)
+    endif()
     add_test(NAME music2keyframes.${test_name}
         COMMAND ${CMAKE_COMMAND}
             -DMUSIC2KEYFRAMES_TOOL=$<TARGET_FILE:music2keyframes>
             -DMUSIC2KEYFRAMES_SOURCE_DIR=${CMAKE_SOURCE_DIR}
             -DMUSIC2KEYFRAMES_BASE=tests/music2keyframes/base-animation.json
-            -DMUSIC2KEYFRAMES_TIMELINE=tests/par-beatdown/gold-write-tracker-source.json
-            -DMUSIC2KEYFRAMES_CONFIG=tests/music2keyframes/adapter.music2keyframes.json
+            -DMUSIC2KEYFRAMES_TIMELINE=${gold_TIMELINE}
+            -DMUSIC2KEYFRAMES_CONFIG=${gold_CONFIG}
+            -DMUSIC2KEYFRAMES_EXPECTED_KEYFRAME_COUNT=${gold_KEYFRAME_COUNT}
             -DMUSIC2KEYFRAMES_EXPECTED=${CMAKE_CURRENT_LIST_DIR}/gold-${output_name}.json
             -DMUSIC2KEYFRAMES_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/${output_name}.actual.json
             -P ${CMAKE_CURRENT_LIST_DIR}/ValidateMusic2Keyframes.cmake)
@@ -37,6 +48,14 @@ function(add_music2keyframes_error_test test_name expected_stderr)
 endfunction()
 
 add_music2keyframes_gold_test(write-empty-overlay)
+add_music2keyframes_gold_test(write-rms-keyframes
+    CONFIG tests/music2keyframes/rms.music2keyframes.json
+    KEYFRAME_COUNT 9
+    TIMELINE tests/music2keyframes/timeline-features.json)
+add_music2keyframes_gold_test(write-peak-keyframes
+    CONFIG tests/music2keyframes/peak.music2keyframes.json
+    KEYFRAME_COUNT 3
+    TIMELINE tests/music2keyframes/timeline-features.json)
 
 add_music2keyframes_error_test(fail-missing-base-animation-path
     "missing base animation path")
@@ -84,3 +103,10 @@ add_music2keyframes_error_test(fail-invalid-adapter-config-version
         tests/par-beatdown/gold-write-tracker-source.json
         tests/music2keyframes/invalid-version.music2keyframes.json
         -o ${CMAKE_CURRENT_BINARY_DIR}/invalid-version.actual.json)
+add_music2keyframes_error_test(fail-invalid-continuous-source
+    "unsupported continuous source"
+    ARGUMENTS
+        tests/music2keyframes/base-animation.json
+        tests/music2keyframes/timeline-features.json
+        tests/music2keyframes/invalid-source.music2keyframes.json
+        -o ${CMAKE_CURRENT_BINARY_DIR}/invalid-source.actual.json)
