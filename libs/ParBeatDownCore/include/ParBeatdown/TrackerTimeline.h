@@ -19,6 +19,8 @@ struct TrackerTimelineSettings
     int sample_rate{48000};
     int channels{2};
     double offset_seconds{0.0};
+    double start_seconds{0.0};
+    double duration_seconds{0.0};
     double feature_hop_seconds{1.0 / 30.0};
     bool include_module{true};
     bool include_timeline{false};

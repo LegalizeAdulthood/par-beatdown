@@ -197,4 +197,70 @@ TEST(ParBeatDownCore, trackerTimelineBuildsFeatureFrames)
     ASSERT_DOUBLE_EQ(0.25516, json.at("features").at(0).at("peak").get<double>());
     ASSERT_TRUE(json.at("features").at(0).contains("channel_vu_mono"));
 }
+
+TEST(ParBeatDownCore, trackerTimelineAppliesTimeWindow)
+{
+    const auto file = std::string{PAR_BEATDOWN_TEST_DATA_DIR} + "/my_neighbors_kid_is_an_internet_addict.xm";
+    par_beatdown::TrackerModule module{file};
+    par_beatdown::TrackerTimelineSettings settings;
+    settings.include_module = false;
+    settings.include_timeline = true;
+    settings.include_pattern_events = true;
+    settings.start_seconds = 1.0;
+    settings.duration_seconds = 2.0;
+
+    const auto clock = module.clock_info(settings);
+    ASSERT_DOUBLE_EQ(2.0, clock.timeline.duration_seconds);
+    ASSERT_EQ(0, clock.timeline.first_frame);
+    ASSERT_EQ(60, clock.timeline.last_frame);
+    ASSERT_EQ(61, clock.timeline.frames);
+    ASSERT_FALSE(clock.events.empty());
+    for (const auto &event : clock.events)
+    {
+        ASSERT_GE(event.time_seconds, 0.0);
+        ASSERT_LT(event.time_seconds, 2.0);
+        ASSERT_GE(event.frame, 0);
+        ASSERT_LE(event.frame, 60);
+    }
+
+    const auto pattern_events = module.pattern_events(settings);
+    ASSERT_FALSE(pattern_events.empty());
+    for (const auto &event : pattern_events)
+    {
+        ASSERT_GE(event.time_seconds, 0.0);
+        ASSERT_LT(event.time_seconds, 2.0);
+        ASSERT_GE(event.frame, 0);
+        ASSERT_LE(event.frame, 60);
+    }
+
+    const auto json = nlohmann::json::parse(par_beatdown::tracker_timeline_json(module, settings));
+    ASSERT_DOUBLE_EQ(1.0, json.at("render").at("start_seconds").get<double>());
+    ASSERT_DOUBLE_EQ(2.0, json.at("render").at("duration_seconds").get<double>());
+    ASSERT_DOUBLE_EQ(2.0, json.at("timeline").at("duration_seconds").get<double>());
+    ASSERT_FALSE(json.at("events").empty());
+}
+
+TEST(ParBeatDownCore, trackerTimelineAppliesFeatureWindow)
+{
+    const auto file = std::string{PAR_BEATDOWN_TEST_DATA_DIR} + "/my_neighbors_kid_is_an_internet_addict.xm";
+    par_beatdown::TrackerModule module{file};
+    par_beatdown::TrackerTimelineSettings settings;
+    settings.include_module = false;
+    settings.include_features = true;
+    settings.start_seconds = 1.0;
+    settings.duration_seconds = 2.0;
+    settings.feature_hop_seconds = 0.5;
+
+    const auto features = module.feature_frames(settings);
+    ASSERT_EQ(4U, features.size());
+    ASSERT_DOUBLE_EQ(0.0, features.front().time_seconds);
+    ASSERT_EQ(0, features.front().frame);
+    ASSERT_DOUBLE_EQ(1.5, features.back().time_seconds);
+    ASSERT_EQ(45, features.back().frame);
+
+    const auto json = nlohmann::json::parse(par_beatdown::tracker_timeline_json(module, settings));
+    ASSERT_DOUBLE_EQ(1.0, json.at("render").at("start_seconds").get<double>());
+    ASSERT_DOUBLE_EQ(2.0, json.at("render").at("duration_seconds").get<double>());
+    ASSERT_EQ(features.size(), json.at("features").size());
+}
 #endif

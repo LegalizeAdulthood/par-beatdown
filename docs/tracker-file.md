@@ -41,7 +41,9 @@ Current command form:
 ```
 par-beatdown song.xm -o song.music.json
     [--include source|module|timeline|events|features]
-    [--fps 30] [--offset 0] [--feature-hop 0.0333333333]
+    [--fps 30] [--offset 0]
+    [--start 0] [--duration 10]
+    [--feature-hop 0.0333333333]
 ```
 
 The file should contain one selected subsong.  The first implementation
@@ -134,6 +136,8 @@ Render {
   sample_rate: integer
   channels: integer
   offset_seconds: number
+  start_seconds: number
+  duration_seconds: number
   feature_hop_seconds: number
 }
 
@@ -281,6 +285,12 @@ Diagnostics {
 
 `offset_seconds` is the user sync offset applied to frame conversion.
 
+`start_seconds` is the source time where the generated output window
+starts.  It appears only when a non-default window is requested.
+
+`duration_seconds` is the requested output window duration.  It appears
+only when a duration limit is requested.
+
 `feature_hop_seconds` is the spacing between feature samples.
 
 ### Module
@@ -329,7 +339,8 @@ Diagnostics {
 
 `kind` is `pattern`, `skip`, or `stop`.
 
-`time_seconds` is the first playback time for this order.
+`time_seconds` is the first playback time for this order in the output
+window.
 
 `frame` is `time_seconds` converted to an animation frame.
 
@@ -347,7 +358,8 @@ Diagnostics {
 
 ### Timeline
 
-`duration_seconds` is the output timeline duration.
+`duration_seconds` is the output timeline duration.  For a windowed
+timeline, this is the window duration, clipped to the source duration.
 
 `frames` is the number of frames in the output timeline.
 
@@ -360,7 +372,7 @@ Diagnostics {
 `kind` is the event type.  Initial values are `order`, `pattern`,
 `row`, `note`, `effect`, and `tempo`.
 
-`time_seconds` is the event time in seconds.
+`time_seconds` is the event time in output seconds.
 
 `frame` is the event frame after applying offset and fps.
 
@@ -388,7 +400,7 @@ Diagnostics {
 
 ### FeatureFrame
 
-`time_seconds` is the feature sample time.
+`time_seconds` is the feature sample time in output seconds.
 
 `frame` is the feature sample frame.
 
@@ -445,6 +457,8 @@ tests/par-beatdown/gold-write-custom-fps.json
 tests/par-beatdown/gold-write-timeline-custom-fps.json
 tests/par-beatdown/gold-write-sync-offset.json
 tests/par-beatdown/gold-write-custom-feature-hop.json
+tests/par-beatdown/gold-write-windowed-timeline.json
+tests/par-beatdown/gold-write-windowed-features.json
 ```
 
 The fixture is useful because it is XM, public domain, and large enough to

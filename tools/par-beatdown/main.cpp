@@ -61,6 +61,16 @@ double parse_positive_number(const std::string &option, const std::string &text)
     return value;
 }
 
+double parse_non_negative_number(const std::string &option, const std::string &text)
+{
+    const auto value = parse_number(option, text);
+    if (value < 0.0)
+    {
+        throw std::runtime_error{"invalid " + option + ": value must be non-negative"};
+    }
+    return value;
+}
+
 void reset_optional_sections(ToolOptions &options)
 {
     if (!options.include_filter_seen)
@@ -131,6 +141,16 @@ ToolOptions parse_options(int argc, char *argv[])
         else if (argument == "--offset")
         {
             options.settings.offset_seconds = parse_number("--offset", require_value(index, argc, argv, "--offset"));
+        }
+        else if (argument == "--start")
+        {
+            options.settings.start_seconds =
+                parse_non_negative_number("--start", require_value(index, argc, argv, "--start"));
+        }
+        else if (argument == "--duration")
+        {
+            options.settings.duration_seconds =
+                parse_positive_number("--duration", require_value(index, argc, argv, "--duration"));
         }
         else if (argument == "--feature-hop")
         {

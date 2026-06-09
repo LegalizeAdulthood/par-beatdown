@@ -69,9 +69,41 @@ bool is_valid_time(double seconds)
     return std::isfinite(seconds) && seconds >= 0.0;
 }
 
-int frame_at(double seconds, const TrackerTimelineSettings &settings)
+bool has_duration_limit(const TrackerTimelineSettings &settings)
 {
-    return static_cast<int>(std::llround((seconds + settings.offset_seconds) * settings.fps));
+    return settings.duration_seconds > 0.0;
+}
+
+double window_end_seconds(double source_duration, const TrackerTimelineSettings &settings)
+{
+    if (!is_valid_time(source_duration) || source_duration < settings.start_seconds)
+    {
+        return settings.start_seconds;
+    }
+    if (!has_duration_limit(settings))
+    {
+        return source_duration;
+    }
+    return std::min(source_duration, settings.start_seconds + settings.duration_seconds);
+}
+
+bool is_in_window(double source_seconds, double end_seconds, const TrackerTimelineSettings &settings)
+{
+    if (source_seconds < settings.start_seconds)
+    {
+        return false;
+    }
+    return !has_duration_limit(settings) || source_seconds < end_seconds;
+}
+
+double output_seconds_at(double source_seconds, const TrackerTimelineSettings &settings)
+{
+    return source_seconds - settings.start_seconds;
+}
+
+int frame_at_output(double output_seconds, const TrackerTimelineSettings &settings)
+{
+    return static_cast<int>(std::llround((output_seconds + settings.offset_seconds) * settings.fps));
 }
 
 double round_json_number(double value)
@@ -308,6 +340,22 @@ nlohmann::ordered_json make_diagnostics_json(const TrackerSourceInfo *source)
         {"warnings", nlohmann::ordered_json::array()}, {"unsupported", nlohmann::ordered_json::array()}, {"log", log}};
 }
 
+nlohmann::ordered_json make_render_json(const TrackerTimelineSettings &settings)
+{
+    auto render = nlohmann::ordered_json{{"fps", settings.fps}, {"sample_rate", settings.sample_rate},
+        {"channels", settings.channels}, {"offset_seconds", settings.offset_seconds},
+        {"feature_hop_seconds", settings.feature_hop_seconds}};
+    if (settings.start_seconds != 0.0 || has_duration_limit(settings))
+    {
+        render["start_seconds"] = settings.start_seconds;
+    }
+    if (has_duration_limit(settings))
+    {
+        render["duration_seconds"] = settings.duration_seconds;
+    }
+    return render;
+}
+
 std::string dump_tracker_timeline(const TrackerTimelineSettings &settings, const TrackerSourceInfo *source,
     const TrackerModuleInfo *module, const TrackerClockInfo *clock, const std::vector<TrackerTimelineEvent> *events,
     const std::vector<TrackerFeatureFrame> *features)
@@ -316,11 +364,7 @@ std::string dump_tracker_timeline(const TrackerTimelineSettings &settings, const
         {"generator",
             nlohmann::ordered_json{{"name", "par-beatdown"}, {"version", version()}, {"backend", tracker_backend},
                 {"library", tracker_library}, {"library_version", openmpt::string::get("library_version")}}},
-        {"source", make_source_json(source)},
-        {"render",
-            nlohmann::ordered_json{{"fps", settings.fps}, {"sample_rate", settings.sample_rate},
-                {"channels", settings.channels}, {"offset_seconds", settings.offset_seconds},
-                {"feature_hop_seconds", settings.feature_hop_seconds}}},
+        {"source", make_source_json(source)}, {"render", make_render_json(settings)},
         {"module", make_module_json(module, clock)}, {"timeline", make_timeline_json(clock)},
         {"events", make_events_json(events)}, {"features", make_features_json(features)},
         {"diagnostics", make_diagnostics_json(source)}};
@@ -453,9 +497,11 @@ TrackerClockInfo TrackerModule::Impl::make_clock_info(const TrackerTimelineSetti
         return info;
     }
 
-    info.timeline.duration_seconds = source_.duration_seconds;
+    const auto end_seconds = window_end_seconds(source_.duration_seconds, settings);
+    info.timeline.duration_seconds = end_seconds - settings.start_seconds;
     info.timeline.first_frame = 0;
-    info.timeline.last_frame = std::max(info.timeline.first_frame, frame_at(source_.duration_seconds, settings));
+    info.timeline.last_frame =
+        std::max(info.timeline.first_frame, frame_at_output(info.timeline.duration_seconds, settings));
     info.timeline.frames = info.timeline.last_frame - info.timeline.first_frame + 1;
 
     for (const auto &order : module_info_.orders)
@@ -471,21 +517,29 @@ TrackerClockInfo TrackerModule::Impl::make_clock_info(const TrackerTimelineSetti
             continue;
         }
 
-        const auto order_frame = frame_at(order_time, settings);
-        info.orders.push_back(TrackerOrderClockInfo{order.index, order.pattern, order.kind, order_time, order_frame});
-        info.events.push_back(TrackerTimelineEvent{"order", order_time, order_frame, order.index, order.pattern, 0});
-        info.events.push_back(TrackerTimelineEvent{"pattern", order_time, order_frame, order.index, order.pattern, 0});
+        if (is_in_window(order_time, end_seconds, settings))
+        {
+            const auto output_time = output_seconds_at(order_time, settings);
+            const auto order_frame = frame_at_output(output_time, settings);
+            info.orders.push_back(
+                TrackerOrderClockInfo{order.index, order.pattern, order.kind, output_time, order_frame});
+            info.events.push_back(
+                TrackerTimelineEvent{"order", output_time, order_frame, order.index, order.pattern, 0});
+            info.events.push_back(
+                TrackerTimelineEvent{"pattern", output_time, order_frame, order.index, order.pattern, 0});
+        }
 
         const auto rows = pattern_row_count(order.pattern);
         for (int row = 0; row < rows; ++row)
         {
             const auto row_time = module_.get_time_at_position(order.index, row);
-            if (!is_valid_time(row_time))
+            if (!is_valid_time(row_time) || !is_in_window(row_time, end_seconds, settings))
             {
                 continue;
             }
-            info.events.push_back(
-                TrackerTimelineEvent{"row", row_time, frame_at(row_time, settings), order.index, order.pattern, row});
+            const auto output_row_time = output_seconds_at(row_time, settings);
+            info.events.push_back(TrackerTimelineEvent{
+                "row", output_row_time, frame_at_output(output_row_time, settings), order.index, order.pattern, row});
         }
     }
 
@@ -496,6 +550,7 @@ std::vector<TrackerTimelineEvent> TrackerModule::Impl::make_pattern_events(
     const TrackerTimelineSettings &settings) const
 {
     std::vector<TrackerTimelineEvent> events;
+    const auto end_seconds = window_end_seconds(source_.duration_seconds, settings);
     for (const auto &order : module_info_.orders)
     {
         if (order.kind != "pattern")
@@ -507,12 +562,13 @@ std::vector<TrackerTimelineEvent> TrackerModule::Impl::make_pattern_events(
         for (int row = 0; row < rows; ++row)
         {
             const auto row_time = module_.get_time_at_position(order.index, row);
-            if (!is_valid_time(row_time))
+            if (!is_valid_time(row_time) || !is_in_window(row_time, end_seconds, settings))
             {
                 continue;
             }
 
-            const auto frame = frame_at(row_time, settings);
+            const auto output_time = output_seconds_at(row_time, settings);
+            const auto frame = frame_at_output(output_time, settings);
             for (int channel = 0; channel < module_info_.channel_count; ++channel)
             {
                 const auto note =
@@ -544,7 +600,7 @@ std::vector<TrackerTimelineEvent> TrackerModule::Impl::make_pattern_events(
 
                 if (has_note)
                 {
-                    TrackerTimelineEvent event{"note", row_time, frame, order.index, order.pattern, row};
+                    TrackerTimelineEvent event{"note", output_time, frame, order.index, order.pattern, row};
                     event.channel = channel;
                     if (has_pattern_text(note_text))
                     {
@@ -564,7 +620,7 @@ std::vector<TrackerTimelineEvent> TrackerModule::Impl::make_pattern_events(
 
                 if (has_effect)
                 {
-                    TrackerTimelineEvent event{"effect", row_time, frame, order.index, order.pattern, row};
+                    TrackerTimelineEvent event{"effect", output_time, frame, order.index, order.pattern, row};
                     event.channel = channel;
                     if (volume != 0)
                     {
@@ -595,16 +651,37 @@ std::vector<TrackerFeatureFrame> TrackerModule::Impl::make_feature_frames(const 
         return features;
     }
 
-    module_.set_position_seconds(0.0);
+    const auto end_seconds = window_end_seconds(source_.duration_seconds, settings);
+    const auto duration_seconds = end_seconds - settings.start_seconds;
+    if (duration_seconds <= 0.0)
+    {
+        return features;
+    }
+
+    module_.set_position_seconds(settings.start_seconds);
     const auto hop_samples = std::max<std::size_t>(1U,
         static_cast<std::size_t>(
             std::llround(settings.feature_hop_seconds * static_cast<double>(settings.sample_rate))));
     auto samples = std::vector<float>(hop_samples * 2U);
     std::uintmax_t rendered_samples = 0;
+    const auto limited_samples = has_duration_limit(settings)
+        ? static_cast<std::uintmax_t>(std::llround(duration_seconds * static_cast<double>(settings.sample_rate)))
+        : 0U;
 
     while (true)
     {
-        const auto rendered = module_.read_interleaved_stereo(settings.sample_rate, hop_samples, samples.data());
+        auto request_samples = hop_samples;
+        if (has_duration_limit(settings))
+        {
+            if (rendered_samples >= limited_samples)
+            {
+                break;
+            }
+            request_samples =
+                std::min<std::size_t>(hop_samples, static_cast<std::size_t>(limited_samples - rendered_samples));
+        }
+
+        const auto rendered = module_.read_interleaved_stereo(settings.sample_rate, request_samples, samples.data());
         if (rendered == 0U)
         {
             break;
@@ -622,7 +699,7 @@ std::vector<TrackerFeatureFrame> TrackerModule::Impl::make_feature_frames(const 
 
         TrackerFeatureFrame feature;
         feature.time_seconds = static_cast<double>(rendered_samples) / static_cast<double>(settings.sample_rate);
-        feature.frame = frame_at(feature.time_seconds, settings);
+        feature.frame = frame_at_output(feature.time_seconds, settings);
         feature.rms = std::sqrt(sum_squares / static_cast<double>(sample_count));
         feature.peak = peak;
         feature.active_channels = module_.get_current_playing_channels();

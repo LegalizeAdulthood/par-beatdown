@@ -69,7 +69,7 @@ $beatKeys = "$build\tools\beat-keys\Release\beat-keys.exe"
 
 ## Generate A Full Timeline
 
-Generate one full timeline with every optional section enabled:
+Generate one small timeline window with every optional section enabled:
 
 ```powershell
 & $parBeatdown `
@@ -78,7 +78,9 @@ Generate one full timeline with every optional section enabled:
   --include module `
   --include timeline `
   --include events `
-  --include features
+  --include features `
+  --start 0 `
+  --duration 20
 ```
 
 Expected result:
@@ -91,13 +93,16 @@ Expected result:
 * `generator.backend` is `tracker-file`
 * `source.format` is `xm`
 * `module`, `timeline`, `events`, and `features` are present
+* `render.start_seconds` is `0.0`
+* `render.duration_seconds` is `20.0`
 
 ## Inspect Timeline Data
 
 Open `C:\tmp\song.music.json` and check:
 
 * `source.title` matches the module title
-* `source.duration_seconds` looks plausible
+* `source.duration_seconds` looks plausible for the full module
+* `timeline.duration_seconds` is `20.0`
 * `render.fps` is `30.0`
 * `render.feature_hop_seconds` is about `0.033333`
 * `module.order_count` is greater than zero
@@ -114,6 +119,19 @@ Look for obvious problems:
 * impossible amplitude values
 * empty diagnostics hiding load problems
 * event storms that would make pulse bindings unusable
+
+If the first 20 seconds are not visually useful, move the window:
+
+```powershell
+& $parBeatdown `
+  data\my_neighbors_kid_is_an_internet_addict.xm `
+  -o C:\tmp\song-later.music.json `
+  --include timeline `
+  --include events `
+  --include features `
+  --start 45 `
+  --duration 20
+```
 
 ## Generate An RMS Merge
 
@@ -226,6 +244,8 @@ Generate a lower-density feature timeline:
   -o C:\tmp\song-hop-0_5.music.json `
   --include timeline `
   --include features `
+  --start 0 `
+  --duration 20 `
   --feature-hop 0.5
 ```
 
@@ -256,6 +276,8 @@ Generate a shifted source timeline:
   --include timeline `
   --include events `
   --include features `
+  --start 0 `
+  --duration 20 `
   --offset 1.25
 ```
 

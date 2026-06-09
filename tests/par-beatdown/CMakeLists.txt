@@ -1,6 +1,6 @@
 if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
     function(add_par_beatdown_gold_test test_name include_name)
-        cmake_parse_arguments(gold "" "FPS;OFFSET;FEATURE_HOP" "" ${ARGN})
+        cmake_parse_arguments(gold "" "DURATION;FEATURE_HOP;FPS;OFFSET;START" "" ${ARGN})
         string(REPLACE "." "-" output_name "${test_name}")
         set(option_definitions)
         if(DEFINED gold_FPS)
@@ -8,6 +8,13 @@ if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
         endif()
         if(DEFINED gold_OFFSET)
             list(APPEND option_definitions -DPAR_BEATDOWN_OFFSET=${gold_OFFSET})
+        endif()
+        if(DEFINED gold_START)
+            list(APPEND option_definitions -DPAR_BEATDOWN_START=${gold_START})
+        endif()
+        if(DEFINED gold_DURATION)
+            list(APPEND option_definitions
+                -DPAR_BEATDOWN_DURATION=${gold_DURATION})
         endif()
         if(DEFINED gold_FEATURE_HOP)
             list(APPEND option_definitions
@@ -50,6 +57,10 @@ if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
     add_par_beatdown_gold_test(write-sync-offset source OFFSET 1.25)
     add_par_beatdown_gold_test(write-custom-feature-hop features
         FEATURE_HOP 0.5)
+    add_par_beatdown_gold_test(write-windowed-timeline timeline
+        START 1.0 DURATION 2.0)
+    add_par_beatdown_gold_test(write-windowed-features features
+        START 1.0 DURATION 2.0 FEATURE_HOP 0.5)
 
     add_par_beatdown_error_test(fail-missing-input-path
         "missing input path")
@@ -74,4 +85,16 @@ if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
             data/my_neighbors_kid_is_an_internet_addict.xm
             -o ${CMAKE_CURRENT_BINARY_DIR}/invalid-fps.actual.json
             --fps 0)
+    add_par_beatdown_error_test(fail-invalid-start
+        "invalid --start: value must be non-negative"
+        ARGUMENTS
+            data/my_neighbors_kid_is_an_internet_addict.xm
+            -o ${CMAKE_CURRENT_BINARY_DIR}/invalid-start.actual.json
+            --start -1)
+    add_par_beatdown_error_test(fail-invalid-duration
+        "invalid --duration: value must be positive"
+        ARGUMENTS
+            data/my_neighbors_kid_is_an_internet_addict.xm
+            -o ${CMAKE_CURRENT_BINARY_DIR}/invalid-duration.actual.json
+            --duration 0)
 endif()

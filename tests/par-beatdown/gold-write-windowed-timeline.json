@@ -1,0 +1,230 @@
+{
+  "schema": "par-beatdown.tracker-timeline",
+  "version": 1,
+  "generator": {
+    "name": "par-beatdown",
+    "version": "0.1.0",
+    "backend": "tracker-file",
+    "library": "libopenmpt",
+    "library_version": "0.8.6"
+  },
+  "source": {
+    "file": "data/my_neighbors_kid_is_an_internet_addict.xm",
+    "size_bytes": 6414784,
+    "format": "xm",
+    "title": "",
+    "duration_seconds": 163.59525000000195,
+    "selected_subsong": 0,
+    "subsong_count": 1
+  },
+  "render": {
+    "fps": 30.0,
+    "sample_rate": 48000,
+    "channels": 2,
+    "offset_seconds": 0.0,
+    "feature_hop_seconds": 0.03333333333333333,
+    "start_seconds": 1.0,
+    "duration_seconds": 2.0
+  },
+  "module": {
+    "channel_count": 0,
+    "order_count": 0,
+    "pattern_count": 0,
+    "instrument_count": 0,
+    "sample_count": 0,
+    "metadata": [],
+    "subsongs": [],
+    "orders": [],
+    "patterns": []
+  },
+  "timeline": {
+    "duration_seconds": 2.0,
+    "frames": 61,
+    "first_frame": 0,
+    "last_frame": 60
+  },
+  "events": [
+    {
+      "kind": "row",
+      "time_seconds": 0.07100000000000017,
+      "frame": 2,
+      "order": 0,
+      "pattern": 0,
+      "row": 12
+    },
+    {
+      "kind": "row",
+      "time_seconds": 0.16025000000000023,
+      "frame": 5,
+      "order": 0,
+      "pattern": 0,
+      "row": 13
+    },
+    {
+      "kind": "row",
+      "time_seconds": 0.24950000000000028,
+      "frame": 7,
+      "order": 0,
+      "pattern": 0,
+      "row": 14
+    },
+    {
+      "kind": "row",
+      "time_seconds": 0.33875000000000033,
+      "frame": 10,
+      "order": 0,
+      "pattern": 0,
+      "row": 15
+    },
+    {
+      "kind": "row",
+      "time_seconds": 0.4280000000000004,
+      "frame": 13,
+      "order": 0,
+      "pattern": 0,
+      "row": 16
+    },
+    {
+      "kind": "row",
+      "time_seconds": 0.5172500000000004,
+      "frame": 16,
+      "order": 0,
+      "pattern": 0,
+      "row": 17
+    },
+    {
+      "kind": "row",
+      "time_seconds": 0.6065000000000005,
+      "frame": 18,
+      "order": 0,
+      "pattern": 0,
+      "row": 18
+    },
+    {
+      "kind": "row",
+      "time_seconds": 0.6957500000000005,
+      "frame": 21,
+      "order": 0,
+      "pattern": 0,
+      "row": 19
+    },
+    {
+      "kind": "row",
+      "time_seconds": 0.7850000000000006,
+      "frame": 24,
+      "order": 0,
+      "pattern": 0,
+      "row": 20
+    },
+    {
+      "kind": "row",
+      "time_seconds": 0.8742500000000006,
+      "frame": 26,
+      "order": 0,
+      "pattern": 0,
+      "row": 21
+    },
+    {
+      "kind": "row",
+      "time_seconds": 0.9635000000000007,
+      "frame": 29,
+      "order": 0,
+      "pattern": 0,
+      "row": 22
+    },
+    {
+      "kind": "row",
+      "time_seconds": 1.0527500000000005,
+      "frame": 32,
+      "order": 0,
+      "pattern": 0,
+      "row": 23
+    },
+    {
+      "kind": "row",
+      "time_seconds": 1.1420000000000003,
+      "frame": 34,
+      "order": 0,
+      "pattern": 0,
+      "row": 24
+    },
+    {
+      "kind": "row",
+      "time_seconds": 1.2312500000000002,
+      "frame": 37,
+      "order": 0,
+      "pattern": 0,
+      "row": 25
+    },
+    {
+      "kind": "row",
+      "time_seconds": 1.3205,
+      "frame": 40,
+      "order": 0,
+      "pattern": 0,
+      "row": 26
+    },
+    {
+      "kind": "row",
+      "time_seconds": 1.4097499999999998,
+      "frame": 42,
+      "order": 0,
+      "pattern": 0,
+      "row": 27
+    },
+    {
+      "kind": "row",
+      "time_seconds": 1.4989999999999997,
+      "frame": 45,
+      "order": 0,
+      "pattern": 0,
+      "row": 28
+    },
+    {
+      "kind": "row",
+      "time_seconds": 1.5882499999999995,
+      "frame": 48,
+      "order": 0,
+      "pattern": 0,
+      "row": 29
+    },
+    {
+      "kind": "row",
+      "time_seconds": 1.6774999999999993,
+      "frame": 50,
+      "order": 0,
+      "pattern": 0,
+      "row": 30
+    },
+    {
+      "kind": "row",
+      "time_seconds": 1.7667499999999992,
+      "frame": 53,
+      "order": 0,
+      "pattern": 0,
+      "row": 31
+    },
+    {
+      "kind": "row",
+      "time_seconds": 1.855999999999999,
+      "frame": 56,
+      "order": 0,
+      "pattern": 0,
+      "row": 32
+    },
+    {
+      "kind": "row",
+      "time_seconds": 1.9452499999999988,
+      "frame": 58,
+      "order": 0,
+      "pattern": 0,
+      "row": 33
+    }
+  ],
+  "features": [],
+  "diagnostics": {
+    "warnings": [],
+    "unsupported": [],
+    "log": []
+  }
+}
