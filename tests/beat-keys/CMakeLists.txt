@@ -56,6 +56,14 @@ add_beat_keys_gold_test(write-peak-keyframes
     CONFIG tests/beat-keys/peak.beat-keys.json
     KEYFRAME_COUNT 3
     TIMELINE tests/beat-keys/timeline-features.json)
+add_beat_keys_gold_test(write-note-pulses
+    CONFIG tests/beat-keys/note-pulses.beat-keys.json
+    KEYFRAME_COUNT 8
+    TIMELINE tests/beat-keys/timeline-events.json)
+add_beat_keys_gold_test(write-row-pulses
+    CONFIG tests/beat-keys/row-pulses.beat-keys.json
+    KEYFRAME_COUNT 4
+    TIMELINE tests/beat-keys/timeline-events.json)
 
 add_beat_keys_error_test(fail-missing-base-animation-path
     "missing base animation path")
@@ -110,3 +118,10 @@ add_beat_keys_error_test(fail-invalid-continuous-source
         tests/beat-keys/timeline-features.json
         tests/beat-keys/invalid-source.beat-keys.json
         -o ${CMAKE_CURRENT_BINARY_DIR}/invalid-source.actual.json)
+add_beat_keys_error_test(fail-invalid-event-source
+    "unsupported event source"
+    ARGUMENTS
+        tests/beat-keys/base-animation.json
+        tests/beat-keys/timeline-events.json
+        tests/beat-keys/invalid-event-source.beat-keys.json
+        -o ${CMAKE_CURRENT_BINARY_DIR}/invalid-event-source.actual.json)

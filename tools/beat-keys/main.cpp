@@ -3,11 +3,15 @@
 #include <nlohmann/json.hpp>
 
 #include <algorithm>
+#include <cmath>
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include <map>
+#include <set>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace
@@ -26,23 +30,39 @@ struct ToolOptions
     std::string output;
 };
 
-enum class FeatureSource
+enum class BindingSource
 {
     Rms,
-    Peak
+    Peak,
+    NotePulse,
+    EffectPulse,
+    RowPulse
 };
 
 struct Binding
 {
-    FeatureSource feature_source{FeatureSource::Rms};
+    BindingSource binding_source{BindingSource::Rms};
     std::string source;
     std::string target;
     std::string op;
     double scale{1.0};
     double offset{0.0};
+    double decay_seconds{0.0};
     bool has_clamp{false};
     double clamp_min{0.0};
     double clamp_max{0.0};
+};
+
+struct AdapterSettings
+{
+    double fps{30.0};
+};
+
+struct Keyframe
+{
+    int frame{0};
+    int order{0};
+    Json json;
 };
 
 std::string require_value(int &index, int argc, char *argv[], const std::string &option)
@@ -163,6 +183,16 @@ const Json &require_array_field(const Json &json, const std::string &field, cons
     return *value;
 }
 
+const Json &require_object_field(const Json &json, const std::string &field, const std::string &label)
+{
+    const auto value = json.find(field);
+    if (value == json.end() || !value->is_object())
+    {
+        throw std::runtime_error{"missing " + label + "." + field};
+    }
+    return *value;
+}
+
 std::string require_string_field(const Json &json, const std::string &field, const std::string &label)
 {
     const auto value = json.find(field);
@@ -207,17 +237,48 @@ double optional_number_field(const Json &json, const std::string &field, double 
     return value->get<double>();
 }
 
-FeatureSource parse_feature_source(const std::string &source)
+bool string_ends_with(const std::string &text, const std::string &suffix)
+{
+    return text.size() >= suffix.size() && text.compare(text.size() - suffix.size(), suffix.size(), suffix) == 0;
+}
+
+BindingSource parse_binding_source(const std::string &source)
 {
     if (source == "music.rms")
     {
-        return FeatureSource::Rms;
+        return BindingSource::Rms;
     }
     if (source == "music.peak")
     {
-        return FeatureSource::Peak;
+        return BindingSource::Peak;
+    }
+    if (source == "music.note_pulse")
+    {
+        return BindingSource::NotePulse;
+    }
+    if (source == "music.effect_pulse")
+    {
+        return BindingSource::EffectPulse;
+    }
+    if (source == "music.row_pulse")
+    {
+        return BindingSource::RowPulse;
+    }
+    if (string_ends_with(source, "_pulse"))
+    {
+        throw std::runtime_error{"unsupported event source: " + source};
     }
     throw std::runtime_error{"unsupported continuous source: " + source};
+}
+
+bool is_continuous_source(BindingSource source)
+{
+    return source == BindingSource::Rms || source == BindingSource::Peak;
+}
+
+bool is_event_source(BindingSource source)
+{
+    return !is_continuous_source(source);
 }
 
 void validate_op(const std::string &op)
@@ -238,12 +299,17 @@ Binding parse_binding(const Json &json, int index)
     Binding binding;
     const std::string label = "binding " + std::to_string(index);
     binding.source = require_string_field(json, "source", label);
-    binding.feature_source = parse_feature_source(binding.source);
+    binding.binding_source = parse_binding_source(binding.source);
     binding.target = require_string_field(json, "target", label);
     binding.op = require_string_field(json, "op", label);
     validate_op(binding.op);
     binding.scale = optional_number_field(json, "scale", 1.0);
     binding.offset = optional_number_field(json, "offset", 0.0);
+    binding.decay_seconds = optional_number_field(json, "decay_seconds", 0.0);
+    if (binding.decay_seconds < 0.0)
+    {
+        throw std::runtime_error{"invalid binding.decay_seconds"};
+    }
 
     const auto clamp = json.find("clamp");
     if (clamp != json.end())
@@ -275,16 +341,54 @@ std::vector<Binding> parse_bindings(const Json &config)
     return bindings;
 }
 
-const char *feature_field(FeatureSource source)
+AdapterSettings parse_adapter_settings(const Json &config)
+{
+    AdapterSettings settings;
+    const auto &source = require_object_field(config, "source", "adapter config");
+    settings.fps = require_number_field(source, "fps", "adapter config.source");
+    if (settings.fps <= 0.0)
+    {
+        throw std::runtime_error{"invalid adapter config.source.fps"};
+    }
+    return settings;
+}
+
+const char *feature_field(BindingSource source)
 {
     switch (source)
     {
-    case FeatureSource::Rms:
+    case BindingSource::Rms:
         return "rms";
-    case FeatureSource::Peak:
+    case BindingSource::Peak:
         return "peak";
+    case BindingSource::NotePulse:
+    case BindingSource::EffectPulse:
+    case BindingSource::RowPulse:
+        break;
     }
     return "";
+}
+
+const char *event_kind(BindingSource source)
+{
+    switch (source)
+    {
+    case BindingSource::NotePulse:
+        return "note";
+    case BindingSource::EffectPulse:
+        return "effect";
+    case BindingSource::RowPulse:
+        return "row";
+    case BindingSource::Rms:
+    case BindingSource::Peak:
+        break;
+    }
+    return "";
+}
+
+double round_value(double value)
+{
+    return std::round(value * 1000000.0) / 1000000.0;
 }
 
 double apply_binding(double input, const Binding &binding)
@@ -294,7 +398,7 @@ double apply_binding(double input, const Binding &binding)
     {
         value = std::clamp(value, binding.clamp_min, binding.clamp_max);
     }
-    return value;
+    return round_value(value);
 }
 
 Json make_keyframe(int frame, double input, const Binding &binding)
@@ -308,9 +412,26 @@ Json make_keyframe(int frame, double input, const Binding &binding)
     return keyframe;
 }
 
-Json make_keyframes(const Json &timeline, const std::vector<Binding> &bindings)
+Json make_zero_keyframe(int frame, const Binding &binding)
 {
-    Json keyframes = Json::array();
+    Json keyframe = Json::object();
+    keyframe["frame"] = frame;
+    keyframe["target"] = binding.target;
+    keyframe["op"] = binding.op;
+    keyframe["value"] = 0.0;
+    keyframe["source"] = binding.source;
+    return keyframe;
+}
+
+void append_keyframe(std::vector<Keyframe> &keyframes, int &order, Json keyframe)
+{
+    const auto frame = keyframe["frame"].get<int>();
+    keyframes.push_back(Keyframe{frame, order++, std::move(keyframe)});
+}
+
+void append_continuous_keyframes(
+    std::vector<Keyframe> &keyframes, int &order, const Json &timeline, const std::vector<Binding> &bindings)
+{
     const auto &features = require_array_field(timeline, "features", "timeline");
     for (const auto &feature : features)
     {
@@ -321,12 +442,111 @@ Json make_keyframes(const Json &timeline, const std::vector<Binding> &bindings)
         const auto frame = require_integer_field(feature, "frame", "timeline feature");
         for (const auto &binding : bindings)
         {
-            const auto *field = feature_field(binding.feature_source);
+            if (!is_continuous_source(binding.binding_source))
+            {
+                continue;
+            }
+            const auto *field = feature_field(binding.binding_source);
             const auto value = require_number_field(feature, field, "timeline feature");
-            keyframes.push_back(make_keyframe(frame, value, binding));
+            append_keyframe(keyframes, order, make_keyframe(frame, value, binding));
         }
     }
-    return keyframes;
+}
+
+int decay_frame_count(const Binding &binding, double fps)
+{
+    if (binding.decay_seconds <= 0.0)
+    {
+        return 1;
+    }
+    return std::max(1, static_cast<int>(std::ceil(binding.decay_seconds * fps)));
+}
+
+double decay_value(int step, const Binding &binding, double fps, double count)
+{
+    if (step == 0)
+    {
+        return count;
+    }
+    if (binding.decay_seconds <= 0.0)
+    {
+        return 0.0;
+    }
+    const auto elapsed_seconds = static_cast<double>(step) / fps;
+    return count * std::exp(-elapsed_seconds / binding.decay_seconds);
+}
+
+std::map<int, int> count_events_by_frame(const Json &timeline, const Binding &binding)
+{
+    std::map<int, int> counts;
+    const auto &events = require_array_field(timeline, "events", "timeline");
+    for (const auto &event : events)
+    {
+        if (!event.is_object())
+        {
+            throw std::runtime_error{"timeline event must be an object"};
+        }
+        const auto kind = require_string_field(event, "kind", "timeline event");
+        if (kind == event_kind(binding.binding_source))
+        {
+            const auto frame = require_integer_field(event, "frame", "timeline event");
+            ++counts[frame];
+        }
+    }
+    return counts;
+}
+
+void append_event_keyframes(std::vector<Keyframe> &keyframes, int &order, const Json &timeline,
+    const std::vector<Binding> &bindings, const AdapterSettings &settings)
+{
+    for (const auto &binding : bindings)
+    {
+        if (!is_event_source(binding.binding_source))
+        {
+            continue;
+        }
+
+        std::map<int, double> frame_values;
+        std::set<int> return_frames;
+        const auto decay_frames = decay_frame_count(binding, settings.fps);
+        for (const auto &[frame, count] : count_events_by_frame(timeline, binding))
+        {
+            for (int step = 0; step < decay_frames; ++step)
+            {
+                frame_values[frame + step] += decay_value(step, binding, settings.fps, static_cast<double>(count));
+            }
+            return_frames.insert(frame + decay_frames);
+        }
+
+        for (const auto &[frame, value] : frame_values)
+        {
+            append_keyframe(keyframes, order, make_keyframe(frame, value, binding));
+        }
+        for (const auto frame : return_frames)
+        {
+            if (frame_values.find(frame) == frame_values.end())
+            {
+                append_keyframe(keyframes, order, make_zero_keyframe(frame, binding));
+            }
+        }
+    }
+}
+
+Json make_keyframes(const Json &timeline, const std::vector<Binding> &bindings, const AdapterSettings &settings)
+{
+    std::vector<Keyframe> keyframes;
+    auto order = 0;
+    append_continuous_keyframes(keyframes, order, timeline, bindings);
+    append_event_keyframes(keyframes, order, timeline, bindings, settings);
+    std::stable_sort(keyframes.begin(), keyframes.end(), [](const Keyframe &left, const Keyframe &right)
+        { return left.frame == right.frame ? left.order < right.order : left.frame < right.frame; });
+
+    Json json_keyframes = Json::array();
+    for (const auto &keyframe : keyframes)
+    {
+        json_keyframes.push_back(keyframe.json);
+    }
+    return json_keyframes;
 }
 
 Json make_empty_overlay(const ToolOptions &options)
@@ -350,7 +570,7 @@ Json make_empty_overlay(const ToolOptions &options)
 Json make_overlay(const ToolOptions &options, const Json &timeline, const Json &config)
 {
     auto overlay = make_empty_overlay(options);
-    overlay["keyframes"] = make_keyframes(timeline, parse_bindings(config));
+    overlay["keyframes"] = make_keyframes(timeline, parse_bindings(config), parse_adapter_settings(config));
     return overlay;
 }
 

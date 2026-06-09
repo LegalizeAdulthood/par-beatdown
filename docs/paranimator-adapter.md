@@ -231,26 +231,7 @@ Rules:
 
 ## Implementation Slices
 
-### Slice 1: Sparse Event Pulses
-
-Convert timeline events into pulse keyframes.
-
-The slice should:
-
-* support `music.note_pulse`, `music.effect_pulse`, and
-  `music.row_pulse`
-* apply exponential decay over `decay_seconds`
-* generate zero-return keyframes after each pulse
-* merge repeated pulses deterministically
-
-The integration tests should:
-
-* add `gold-write-note-pulses.json`
-* add `gold-write-row-pulses.json`
-* add an invalid event source error case
-* validate pulse frame, return frame, and generated values
-
-### Slice 2: Base Animation Merge
+### Slice 1: Base Animation Merge
 
 Merge generated overlay data with a base animation config.
 
@@ -268,7 +249,7 @@ The integration tests should:
 * add a generated id conflict error case
 * validate preserved base fields and appended generated keyframes
 
-### Slice 3: Native ParAnimator Plan
+### Slice 2: Native ParAnimator Plan
 
 Do not implement native ParAnimator timeline support here.
 

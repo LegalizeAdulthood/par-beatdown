@@ -96,7 +96,10 @@ endfunction()
 
 function(assert_supported_source value field)
     if(NOT "${value}" STREQUAL "music.rms"
-            AND NOT "${value}" STREQUAL "music.peak")
+            AND NOT "${value}" STREQUAL "music.peak"
+            AND NOT "${value}" STREQUAL "music.note_pulse"
+            AND NOT "${value}" STREQUAL "music.effect_pulse"
+            AND NOT "${value}" STREQUAL "music.row_pulse")
         fail_field_check("${field}" "unsupported source '${value}'")
     endif()
 endfunction()
