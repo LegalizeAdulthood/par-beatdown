@@ -27,6 +27,19 @@ if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
             LABELS par-beatdown)
     endfunction()
 
+    function(add_par_beatdown_error_test test_name expected_stderr)
+        cmake_parse_arguments(error "" "" "ARGUMENTS" ${ARGN})
+        add_test(NAME par-beatdown.${test_name}
+            COMMAND ${CMAKE_COMMAND}
+                -DPAR_BEATDOWN_TOOL=$<TARGET_FILE:par-beatdown>
+                -DPAR_BEATDOWN_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+                "-DPAR_BEATDOWN_EXPECTED_STDERR=${expected_stderr}"
+                "-DPAR_BEATDOWN_ARGUMENTS=${error_ARGUMENTS}"
+                -P ${CMAKE_CURRENT_LIST_DIR}/ValidateToolFailure.cmake)
+        set_tests_properties(par-beatdown.${test_name} PROPERTIES
+            LABELS par-beatdown)
+    endfunction()
+
     add_par_beatdown_gold_test(write-tracker-source source)
     add_par_beatdown_gold_test(write-module-structure module)
     add_par_beatdown_gold_test(write-timeline-clock timeline)
@@ -37,4 +50,28 @@ if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
     add_par_beatdown_gold_test(write-sync-offset source OFFSET 1.25)
     add_par_beatdown_gold_test(write-custom-feature-hop features
         FEATURE_HOP 0.5)
+
+    add_par_beatdown_error_test(fail-missing-input-path
+        "missing input path")
+    add_par_beatdown_error_test(fail-missing-input-file
+        "could not open tracker file"
+        ARGUMENTS
+            data/missing.xm
+            -o ${CMAKE_CURRENT_BINARY_DIR}/missing-input.actual.json)
+    add_par_beatdown_error_test(fail-invalid-tracker
+        "could not load tracker file"
+        ARGUMENTS
+            tests/par-beatdown/invalid-tracker.txt
+            -o ${CMAKE_CURRENT_BINARY_DIR}/invalid-tracker.actual.json)
+    add_par_beatdown_error_test(fail-invalid-output
+        "could not open output file"
+        ARGUMENTS
+            data/my_neighbors_kid_is_an_internet_addict.xm
+            -o ${CMAKE_CURRENT_BINARY_DIR}/missing-dir/output.json)
+    add_par_beatdown_error_test(fail-invalid-fps
+        "invalid --fps: value must be positive"
+        ARGUMENTS
+            data/my_neighbors_kid_is_an_internet_addict.xm
+            -o ${CMAKE_CURRENT_BINARY_DIR}/invalid-fps.actual.json
+            --fps 0)
 endif()

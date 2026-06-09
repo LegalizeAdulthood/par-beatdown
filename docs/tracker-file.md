@@ -73,6 +73,7 @@ Rules:
 * do not grow old gold files when a later slice adds a new section
 * run field checks before comparing generated output to gold JSON
 * normalize line endings before comparing generated output to gold JSON
+* validate error paths with non-zero exit codes and short stderr text
 * label all tool integration tests `par-beatdown`
 
 Global fields:
@@ -409,30 +410,7 @@ Diagnostics {
 
 ## Implementation Slices
 
-### Slice 1: Diagnostics And Errors
-
-Make failure modes useful.
-
-The slice should:
-
-* report file-open failure
-* report libopenmpt load failure
-* report unsupported empty modules
-* report invalid fps
-* report invalid output path
-* carry non-fatal libopenmpt log lines into `diagnostics.log`
-* keep user-facing errors short
-
-The integration test should:
-
-* add a tool integration case for a missing input file
-* add a tool integration case for an invalid tracker file
-* add a tool integration case for an invalid output path
-* validate non-zero exit codes and short stderr text
-
-Remove this slice when common error paths are tested.
-
-### Slice 2: Future ParAnimator Adapter
+### Slice 1: Future ParAnimator Adapter
 
 Do not implement this in the tracker-file JSON pipeline.
 
@@ -458,6 +436,12 @@ The sidecar metadata is:
 
 ```
 data/my_neighbors_kid_is_an_internet_addict.md
+```
+
+The invalid input fixture is:
+
+```
+tests/par-beatdown/invalid-tracker.txt
 ```
 
 Current tool integration gold files are:

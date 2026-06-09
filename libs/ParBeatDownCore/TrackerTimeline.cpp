@@ -13,6 +13,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -29,6 +30,13 @@ std::ifstream open_tracker_file(const std::string &file)
         throw std::runtime_error{"could not open tracker file: " + file};
     }
     return stream;
+}
+
+std::uintmax_t tracker_file_size(const std::string &file)
+{
+    std::error_code error;
+    const auto size = std::filesystem::file_size(file, error);
+    return error ? 0 : size;
 }
 
 std::vector<std::string> split_log_lines(const std::string &text)
@@ -346,7 +354,7 @@ struct TrackerModule::Impl
 
 TrackerModule::Impl::Impl(std::string file) :
     file_{std::move(file)},
-    size_bytes_{std::filesystem::file_size(file_)},
+    size_bytes_{tracker_file_size(file_)},
     stream_{open_tracker_file(file_)},
     module_{stream_, log_}
 {
@@ -407,6 +415,10 @@ void TrackerModule::Impl::load_module_info()
     module_info_.pattern_count = module_.get_num_patterns();
     module_info_.instrument_count = module_.get_num_instruments();
     module_info_.sample_count = module_.get_num_samples();
+    if (module_info_.channel_count <= 0 || module_info_.order_count <= 0 || module_info_.pattern_count <= 0)
+    {
+        throw std::runtime_error{"unsupported empty tracker module: " + file_};
+    }
 
     for (const auto &key : metadata_keys)
     {
@@ -628,12 +640,13 @@ std::vector<TrackerFeatureFrame> TrackerModule::Impl::make_feature_frames(const 
 
 TrackerModule::TrackerModule(std::string file)
 try :
-    impl_{std::make_unique<Impl>(std::move(file))}
+    impl_{std::make_unique<Impl>(file)}
 {
 }
 catch (const openmpt::exception &exception)
 {
-    throw std::runtime_error{exception.what()};
+    (void) exception;
+    throw std::runtime_error{"could not load tracker file: " + file};
 }
 
 TrackerModule::TrackerModule(TrackerModule &&other) noexcept = default;
