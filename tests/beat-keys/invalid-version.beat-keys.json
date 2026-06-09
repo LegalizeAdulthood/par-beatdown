@@ -1,5 +1,5 @@
 {
-  "schema": "par-beatdown.music2keyframes",
+  "schema": "par-beatdown.beat-keys",
   "version": 2,
   "source": {
     "timeline": "song.music.json",

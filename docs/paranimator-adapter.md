@@ -6,8 +6,8 @@ timeline JSON into ParAnimator-friendly keyframes.
 The first adapter should be a separate command-line tool:
 
 ```
-music2keyframes base-animation.json song.music.json \
-    adapter.music2keyframes.json -o music-animation.json
+beat-keys base-animation.json song.music.json \
+    adapter.beat-keys.json -o music-animation.json
 ```
 
 Do not add native ParAnimator music timeline support in this plan.  Keep
@@ -37,7 +37,7 @@ Inputs:
 ```
 base-animation.json
 song.music.json
-adapter.music2keyframes.json
+adapter.beat-keys.json
 ```
 
 Output:
@@ -54,7 +54,7 @@ format should be confirmed against ParAnimator before implementation.
 Human-readable schema:
 
 ```
-Music2KeyframesConfig {
+BeatKeysConfig {
   schema: string
   version: integer
   source: Source
@@ -92,10 +92,10 @@ Clamp {
 
 ## Field Reference
 
-### Music2KeyframesConfig
+### BeatKeysConfig
 
 `schema` identifies the adapter config schema.  Use
-`par-beatdown.music2keyframes`.
+`par-beatdown.beat-keys`.
 
 `version` is the integer schema version.  Start at `1`.
 
@@ -158,7 +158,7 @@ music.row_pulse
 Human-readable schema:
 
 ```
-Music2KeyframesOverlay {
+BeatKeysOverlay {
   schema: string
   version: integer
   generator: Generator
@@ -194,7 +194,7 @@ Diagnostics {
 ## Output Field Reference
 
 `schema` identifies generated overlay output.  Use
-`par-beatdown.music2keyframes-overlay`.
+`par-beatdown.beat-keys-overlay`.
 
 `version` is the integer schema version.  Start at `1`.
 
@@ -219,7 +219,7 @@ decay, and clamp.
 
 ## Integration Tests
 
-Adapter integration tests should live under `tests/music2keyframes`.
+Adapter integration tests should live under `tests/beat-keys`.
 
 Rules:
 
@@ -227,7 +227,7 @@ Rules:
 * compare generated output after normalizing line endings
 * parse generated output and check schema fields before gold comparison
 * validate failure paths with non-zero exit codes and short stderr text
-* label all adapter integration tests `music2keyframes`
+* label all adapter integration tests `beat-keys`
 
 ## Implementation Slices
 
@@ -272,7 +272,7 @@ The integration tests should:
 
 Do not implement native ParAnimator timeline support here.
 
-Create a separate plan only after `music2keyframes` proves the mapping
+Create a separate plan only after `beat-keys` proves the mapping
 model.
 
 That plan should cover:

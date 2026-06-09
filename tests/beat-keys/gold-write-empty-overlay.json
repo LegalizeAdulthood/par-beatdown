@@ -1,0 +1,17 @@
+{
+  "schema": "par-beatdown.beat-keys-overlay",
+  "version": 1,
+  "generator": {
+    "name": "beat-keys",
+    "version": "0.1.0"
+  },
+  "source": {
+    "base_animation": "tests/beat-keys/base-animation.json",
+    "timeline": "tests/par-beatdown/gold-write-tracker-source.json",
+    "adapter_config": "tests/beat-keys/adapter.beat-keys.json"
+  },
+  "keyframes": [],
+  "diagnostics": {
+    "warnings": []
+  }
+}

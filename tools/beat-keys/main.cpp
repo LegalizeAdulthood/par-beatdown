@@ -15,8 +15,8 @@ namespace
 
 using Json = nlohmann::ordered_json;
 
-constexpr const char *CONFIG_SCHEMA = "par-beatdown.music2keyframes";
-constexpr const char *OVERLAY_SCHEMA = "par-beatdown.music2keyframes-overlay";
+constexpr const char *CONFIG_SCHEMA = "par-beatdown.beat-keys";
+constexpr const char *OVERLAY_SCHEMA = "par-beatdown.beat-keys-overlay";
 
 struct ToolOptions
 {
@@ -335,7 +335,7 @@ Json make_empty_overlay(const ToolOptions &options)
     overlay["schema"] = OVERLAY_SCHEMA;
     overlay["version"] = 1;
     overlay["generator"] = Json::object();
-    overlay["generator"]["name"] = "music2keyframes";
+    overlay["generator"]["name"] = "beat-keys";
     overlay["generator"]["version"] = par_beatdown::version();
     overlay["source"] = Json::object();
     overlay["source"]["base_animation"] = options.base_animation;
