@@ -233,18 +233,4 @@ Rules:
 
 ## Implementation Slices
 
-### Slice 1: Native ParAnimator Plan
-
-Do not implement native ParAnimator timeline support here.
-
-Create a separate plan only after `beat-keys` proves the mapping
-model.
-
-That plan should cover:
-
-* loading external timeline files
-* feature sampling during frame evaluation
-* sparse event pulses
-* smoothing and clamping
-* interaction with authored keyframes
-* ParAnimator integration tests for every slice
+All adapter slices are complete.
