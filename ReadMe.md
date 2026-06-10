@@ -35,6 +35,8 @@ ParAnimator.
 song.xm
   -> par-beatdown
   -> song.music.json
+  -> beat-keys
+  -> animation.music.json
   -> paranimator
   -> generated PAR files / rendered frames
   -> external video/audio muxing
@@ -44,12 +46,19 @@ par-beatdown is a separate command-line tool.  It reads tracker files
 directly or invokes external audio-analysis tools, then converts their
 output into a neutral timeline file.
 
-ParAnimator should consume only the generated timeline data.
+`beat-keys` is the current bridge between the neutral music timeline and
+ParAnimator.  It reads a base animation config, the `song.music.json`
+timeline, and a small adapter config.  It then writes ordinary generated
+keyframes or appends generated tracks to a ParAnimator-style config.
+
+ParAnimator can then consume normal animation data while native music
+timeline support is still being proven.
 
 The important boundary is:
 
 ```
-music-analysis backend  ->  neutral JSON data  ->  ParAnimator
+music-analysis backend  ->  neutral JSON data  ->  beat-keys
+beat-keys               ->  generated animation data  ->  ParAnimator
 ```
 
 ParAnimator should not know whether the analysis came from libopenmpt,
@@ -138,6 +147,7 @@ The architecture should remain:
 
 ```
 par-beatdown       GPL-compatible audio analysis and timeline generator
+beat-keys          JSON adapter from music timeline to animation keyframes
 paranimator        no direct dependency on audio-analysis backends
 *.music.json       data interchange
 ```
@@ -341,6 +351,21 @@ It should not know about libopenmpt.
 It should not know about Marsyas.
 
 It should know only about external timeline data.
+
+### 6. beat-keys Adapter
+
+The current bridge to ParAnimator.
+
+Responsibilities:
+
+* Read a base animation config.
+* Read `song.music.json`.
+* Read `adapter.beat-keys.json`.
+* Map timeline features or events onto animation parameters.
+* Write a generated keyframe overlay or merged animation config.
+
+`beat-keys` exists so the mapping model can be tested before ParAnimator
+learns native music timeline evaluation.
 
 ## Timeline File Format
 
@@ -754,12 +779,13 @@ beat events
 rms or amplitude envelope
 ```
 
-### Phase 4: Keyframe Preprocessor
+### Phase 4: beat-keys Adapter
 
 Before modifying ParAnimator, add a small converter:
 
 ```
-music2keyframes base-animation.json song.music.json -o music-animation.json
+beat-keys base-animation.json song.music.json adapter.beat-keys.json \
+  -o music-animation.json
 ```
 
 It inserts ordinary keyframes based on beat events.
@@ -794,7 +820,7 @@ smoothing
 clamping
 ```
 
-At this point, the keyframe preprocessor becomes optional.
+At this point, `beat-keys` becomes optional.
 
 ### Phase 6: More Features
 
@@ -857,7 +883,8 @@ Prefer song.beatdown.json if being cute is temporarily allowed.
 ```
 par-beatdown song.mp3 --fps 30 -o song.music.json
 
-music2keyframes animation.json song.music.json -o animation.music.json
+beat-keys animation.json song.music.json adapter.beat-keys.json \
+  -o animation.music.json
 
 paranimator animation.music.json
 

@@ -46,9 +46,9 @@ par-beatdown song.xm -o song.music.json
     [--feature-hop 0.0333333333]
 ```
 
-The file should contain one selected subsong.  The first implementation
-may use libopenmpt's default subsong selection.  Later CLI options can
-select a specific subsong or emit one file per subsong.
+The file contains one selected subsong.  The current implementation uses
+libopenmpt's default subsong selection.  Future CLI options can select a
+specific subsong or emit one file per subsong.
 
 ## JSON Rules
 
@@ -428,8 +428,8 @@ timeline, this is the window duration, clipped to the source duration.
 
 ## Implementation Slices
 
-All tracker-file implementation slices are complete.  Future ParAnimator
-adapter work is tracked in `docs/paranimator-adapter.md`.
+All tracker-file implementation slices are complete.  The completed
+`beat-keys` adapter is documented in `docs/paranimator-adapter.md`.
 
 ## Test Data
 

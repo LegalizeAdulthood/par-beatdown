@@ -1,18 +1,18 @@
-# ParAnimator Adapter Plan
+# ParAnimator Adapter
 
-This plan covers a later adapter that converts neutral par-beatdown
-timeline JSON into ParAnimator-friendly keyframes.
+This document covers the `beat-keys` adapter.  It converts neutral
+par-beatdown timeline JSON into ParAnimator-friendly keyframes.
 
-The first adapter should be a separate command-line tool:
+`beat-keys` is a separate command-line tool:
 
 ```
 beat-keys base-animation.json song.music.json \
     adapter.beat-keys.json -o music-animation.json
 ```
 
-Do not add native ParAnimator music timeline support in this plan.  Keep
-the first adapter inspectable: it reads a base animation config and a
-neutral timeline, then writes ordinary keyframes or a generated overlay.
+Native ParAnimator music timeline support is tracked separately.  Keep
+`beat-keys` inspectable: it reads a base animation config and a neutral
+timeline, then writes ordinary keyframes or a generated overlay.
 
 ## Goals
 
@@ -46,8 +46,8 @@ Output:
 music-animation.json
 ```
 
-The output is a generated ParAnimator config or overlay.  The exact merge
-format should be confirmed against ParAnimator before implementation.
+The output is a generated overlay or a ParAnimator-style config with
+generated tracks appended.
 
 ## Adapter Config Schema V1
 
@@ -240,7 +240,7 @@ decay, and clamp.
 
 ## Integration Tests
 
-Adapter integration tests should live under `tests/beat-keys`.
+Adapter integration tests live under `tests/beat-keys`.
 
 Rules:
 
