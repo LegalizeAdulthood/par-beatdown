@@ -44,6 +44,11 @@ misc_group_sources("Editing" FILES
 misc_group_sources("Git" FILES
     ".gitignore"
     ".gitmodules")
+misc_group_sources("Schemas" FILES
+    "schemas/beat-keys.schema.json"
+    "schemas/beat-keys-merged-animation.schema.json"
+    "schemas/beat-keys-overlay.schema.json"
+    "schemas/tracker-timeline.schema.json")
 misc_group_sources("VcPkg" FILES
     "vcpkg-configuration.json"
     "vcpkg.json"

@@ -1,0 +1,607 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://legalize.github.io/par-beatdown/schemas/tracker-timeline.schema.json",
+  "title": "par-beatdown tracker timeline",
+  "description": "Neutral music timeline JSON emitted by par-beatdown for a tracker module.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "version",
+    "generator",
+    "source",
+    "render",
+    "module",
+    "timeline",
+    "events",
+    "features",
+    "diagnostics"
+  ],
+  "properties": {
+    "schema": {
+      "description": "Schema identifier for a par-beatdown tracker timeline.",
+      "const": "par-beatdown.tracker-timeline"
+    },
+    "version": {
+      "description": "Integer schema version for the tracker timeline document.",
+      "const": 1
+    },
+    "generator": {
+      "$ref": "#/$defs/generator",
+      "description": "Tool and backend that generated the timeline."
+    },
+    "source": {
+      "$ref": "#/$defs/source",
+      "description": "Input tracker module and selected subsong."
+    },
+    "render": {
+      "$ref": "#/$defs/render",
+      "description": "Analysis and frame-conversion settings."
+    },
+    "module": {
+      "$ref": "#/$defs/module",
+      "description": "Static tracker module structure."
+    },
+    "timeline": {
+      "$ref": "#/$defs/timeline",
+      "description": "Output timeline duration and frame range."
+    },
+    "events": {
+      "description": "Sparse tracker-derived timeline events.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/event",
+        "description": "One sparse tracker-derived timeline event."
+      }
+    },
+    "features": {
+      "description": "Continuous rendered feature frames.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/feature-frame",
+        "description": "One rendered feature frame."
+      }
+    },
+    "diagnostics": {
+      "$ref": "#/$defs/diagnostics",
+      "description": "Warnings and backend diagnostic text."
+    }
+  },
+  "$defs": {
+    "generator": {
+      "description": "Tool and backend metadata for the generated timeline.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "backend",
+        "library",
+        "library_version"
+      ],
+      "properties": {
+        "name": {
+          "description": "Name of the program that generated the file.",
+          "type": "string",
+          "const": "par-beatdown"
+        },
+        "version": {
+          "description": "Version string of the generating program.",
+          "type": "string"
+        },
+        "backend": {
+          "description": "Analysis backend used to read the source file.",
+          "type": "string",
+          "const": "tracker-file"
+        },
+        "library": {
+          "description": "Backend library used by the generator.",
+          "type": "string",
+          "const": "libopenmpt"
+        },
+        "library_version": {
+          "description": "Version string reported by the backend library.",
+          "type": "string"
+        }
+      }
+    },
+    "source": {
+      "description": "Input tracker module and selected subsong metadata.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "file",
+        "size_bytes",
+        "format",
+        "title",
+        "duration_seconds",
+        "selected_subsong",
+        "subsong_count"
+      ],
+      "properties": {
+        "file": {
+          "description": "Input path as supplied to par-beatdown.",
+          "type": "string"
+        },
+        "size_bytes": {
+          "description": "Input file size in bytes.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "format": {
+          "description": "Tracker module format reported by libopenmpt.",
+          "type": "string"
+        },
+        "title": {
+          "description": "Module title reported by libopenmpt.",
+          "type": "string"
+        },
+        "duration_seconds": {
+          "description": "Full selected subsong duration in seconds.",
+          "type": "number",
+          "minimum": 0
+        },
+        "selected_subsong": {
+          "description": "Selected subsong index reported by libopenmpt.",
+          "type": "integer"
+        },
+        "subsong_count": {
+          "description": "Number of subsongs reported by libopenmpt.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "render": {
+      "description": "Settings used to map source music time to output frames.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fps",
+        "sample_rate",
+        "channels",
+        "offset_seconds",
+        "feature_hop_seconds"
+      ],
+      "properties": {
+        "fps": {
+          "description": "Animation frame rate used for frame conversion.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "sample_rate": {
+          "description": "PCM sample rate used for rendered features.",
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "channels": {
+          "description": "PCM output channel count used for rendered features.",
+          "type": "integer",
+          "exclusiveMinimum": 0
+        },
+        "offset_seconds": {
+          "description": "Manual sync offset applied during frame conversion.",
+          "type": "number"
+        },
+        "start_seconds": {
+          "description": "Source time where a requested output window starts.",
+          "type": "number",
+          "minimum": 0
+        },
+        "duration_seconds": {
+          "description": "Requested output window duration in seconds.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "feature_hop_seconds": {
+          "description": "Spacing between rendered feature frames in seconds.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "module": {
+      "description": "Static tracker module structure.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "channel_count",
+        "order_count",
+        "pattern_count",
+        "instrument_count",
+        "sample_count",
+        "metadata",
+        "subsongs",
+        "orders",
+        "patterns"
+      ],
+      "properties": {
+        "channel_count": {
+          "description": "Number of tracker pattern channels.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "order_count": {
+          "description": "Number of orders in the selected sequence.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "pattern_count": {
+          "description": "Number of distinct tracker patterns.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "instrument_count": {
+          "description": "Number of tracker instruments.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "sample_count": {
+          "description": "Number of tracker samples.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "metadata": {
+          "description": "Raw metadata values reported by libopenmpt.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/metadata-item",
+            "description": "One libopenmpt metadata key and value."
+          }
+        },
+        "subsongs": {
+          "description": "Known subsongs in the tracker module.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/subsong",
+            "description": "One subsong summary."
+          }
+        },
+        "orders": {
+          "description": "Order list entries in playback order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/order",
+            "description": "One order list entry."
+          }
+        },
+        "patterns": {
+          "description": "Pattern summaries by pattern index.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pattern",
+            "description": "One tracker pattern summary."
+          }
+        }
+      }
+    },
+    "metadata-item": {
+      "description": "Raw libopenmpt metadata key and value.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "description": "Metadata key reported by libopenmpt.",
+          "type": "string"
+        },
+        "value": {
+          "description": "Metadata value reported by libopenmpt.",
+          "type": "string"
+        }
+      }
+    },
+    "subsong": {
+      "description": "Subsong summary reported by libopenmpt.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "name",
+        "restart_order",
+        "restart_row"
+      ],
+      "properties": {
+        "index": {
+          "description": "Subsong index.",
+          "type": "integer"
+        },
+        "name": {
+          "description": "Subsong name.",
+          "type": "string"
+        },
+        "restart_order": {
+          "description": "Order used when playback restarts.",
+          "type": "integer"
+        },
+        "restart_row": {
+          "description": "Row used when playback restarts.",
+          "type": "integer"
+        }
+      }
+    },
+    "order": {
+      "description": "Order list entry and optional playback position.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "pattern",
+        "name",
+        "kind"
+      ],
+      "properties": {
+        "index": {
+          "description": "Order index.",
+          "type": "integer"
+        },
+        "pattern": {
+          "description": "Pattern index referenced by this order.",
+          "type": "integer"
+        },
+        "name": {
+          "description": "Order name reported by libopenmpt.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Kind of order entry.",
+          "type": "string",
+          "enum": [
+            "pattern",
+            "skip",
+            "stop"
+          ]
+        },
+        "time_seconds": {
+          "description": "First playback time for this order in output seconds.",
+          "type": "number",
+          "minimum": 0
+        },
+        "frame": {
+          "description": "Animation frame for this order time.",
+          "type": "integer"
+        }
+      }
+    },
+    "pattern": {
+      "description": "Tracker pattern summary.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "index",
+        "name",
+        "row_count",
+        "rows_per_beat",
+        "rows_per_measure"
+      ],
+      "properties": {
+        "index": {
+          "description": "Pattern index.",
+          "type": "integer"
+        },
+        "name": {
+          "description": "Pattern name reported by libopenmpt.",
+          "type": "string"
+        },
+        "row_count": {
+          "description": "Number of rows in the pattern.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "rows_per_beat": {
+          "description": "Rows per beat reported by libopenmpt.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "rows_per_measure": {
+          "description": "Rows per measure reported by libopenmpt.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "timeline": {
+      "description": "Output timeline duration and frame range.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "duration_seconds",
+        "frames",
+        "first_frame",
+        "last_frame"
+      ],
+      "properties": {
+        "duration_seconds": {
+          "description": "Output timeline duration in seconds.",
+          "type": "number",
+          "minimum": 0
+        },
+        "frames": {
+          "description": "Number of frames in the output timeline.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_frame": {
+          "description": "First valid output frame.",
+          "type": "integer"
+        },
+        "last_frame": {
+          "description": "Final valid output frame, or -1 for no frames.",
+          "type": "integer"
+        }
+      }
+    },
+    "event": {
+      "description": "Sparse tracker-derived timeline event.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "time_seconds",
+        "frame",
+        "order",
+        "pattern",
+        "row"
+      ],
+      "properties": {
+        "kind": {
+          "description": "Event type.",
+          "type": "string",
+          "enum": [
+            "order",
+            "pattern",
+            "row",
+            "note",
+            "effect",
+            "tempo"
+          ]
+        },
+        "time_seconds": {
+          "description": "Event time in output seconds.",
+          "type": "number",
+          "minimum": 0
+        },
+        "frame": {
+          "description": "Animation frame for the event.",
+          "type": "integer"
+        },
+        "order": {
+          "description": "Source order index.",
+          "type": "integer"
+        },
+        "pattern": {
+          "description": "Source pattern index.",
+          "type": "integer"
+        },
+        "row": {
+          "description": "Source pattern row index.",
+          "type": "integer"
+        },
+        "channel": {
+          "description": "Source tracker channel index.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "note": {
+          "description": "Formatted tracker note text.",
+          "type": "string"
+        },
+        "instrument": {
+          "description": "Tracker instrument number.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "sample": {
+          "description": "Tracker sample number.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "volume": {
+          "description": "Tracker volume command or value.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "effect": {
+          "description": "Formatted tracker effect command text.",
+          "type": "string"
+        },
+        "parameter": {
+          "description": "Raw tracker effect parameter.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "text": {
+          "description": "Human-readable tracker event text.",
+          "type": "string"
+        }
+      }
+    },
+    "feature-frame": {
+      "description": "Continuous rendered feature frame.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_seconds",
+        "frame",
+        "rms",
+        "peak",
+        "active_channels",
+        "channel_vu_mono"
+      ],
+      "properties": {
+        "time_seconds": {
+          "description": "Feature sample time in output seconds.",
+          "type": "number",
+          "minimum": 0
+        },
+        "frame": {
+          "description": "Animation frame for this feature sample.",
+          "type": "integer"
+        },
+        "rms": {
+          "description": "Rendered PCM root-mean-square amplitude.",
+          "type": "number",
+          "minimum": 0
+        },
+        "peak": {
+          "description": "Rendered PCM peak absolute amplitude.",
+          "type": "number",
+          "minimum": 0
+        },
+        "active_channels": {
+          "description": "Current active tracker channel count.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "channel_vu_mono": {
+          "description": "Mono VU value for each tracker channel.",
+          "type": "array",
+          "items": {
+            "description": "One channel mono VU value.",
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "diagnostics": {
+      "description": "Warnings and backend diagnostic text.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "warnings",
+        "unsupported",
+        "log"
+      ],
+      "properties": {
+        "warnings": {
+          "description": "Non-fatal warning messages.",
+          "type": "array",
+          "items": {
+            "description": "One non-fatal warning message.",
+            "type": "string"
+          }
+        },
+        "unsupported": {
+          "description": "Unsupported or skipped tracker details.",
+          "type": "array",
+          "items": {
+            "description": "One unsupported or skipped tracker detail.",
+            "type": "string"
+          }
+        },
+        "log": {
+          "description": "Backend log lines collected during load or render.",
+          "type": "array",
+          "items": {
+            "description": "One backend log line.",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

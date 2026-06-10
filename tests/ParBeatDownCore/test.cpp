@@ -7,8 +7,12 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <nlohmann/json.hpp>
+#include <stdexcept>
 #include <string>
+#include <vector>
 #endif
 
 TEST(ParBeatDownCore, version)
@@ -17,9 +21,113 @@ TEST(ParBeatDownCore, version)
 }
 
 #ifdef PAR_BEATDOWN_ENABLE_TRACKER_FILE
+namespace
+{
+
+using Json = nlohmann::json;
+
+Json read_json_file(const std::filesystem::path &path)
+{
+    std::ifstream input{path, std::ios::binary};
+    if (!input)
+    {
+        throw std::runtime_error{"could not open JSON file: " + path.string()};
+    }
+
+    Json json;
+    input >> json;
+    return json;
+}
+
+void assert_description(const Json &schema, const std::string &path)
+{
+    ASSERT_TRUE(schema.contains("description")) << path;
+    ASSERT_TRUE(schema.at("description").is_string()) << path;
+    ASSERT_FALSE(schema.at("description").get<std::string>().empty()) << path;
+}
+
+void check_schema_descriptions(const Json &schema, const std::string &path);
+
+void check_schema_map(const Json &schema, const std::string &field, const std::string &path)
+{
+    const auto found = schema.find(field);
+    if (found == schema.end())
+    {
+        return;
+    }
+
+    ASSERT_TRUE(found->is_object()) << path + "." + field;
+    for (const auto &[name, child] : found->items())
+    {
+        ASSERT_TRUE(child.is_object()) << path + "." + field + "." + name;
+        check_schema_descriptions(child, path + "." + field + "." + name);
+    }
+}
+
+void check_schema_array(const Json &schema, const std::string &field, const std::string &path)
+{
+    const auto found = schema.find(field);
+    if (found == schema.end())
+    {
+        return;
+    }
+
+    ASSERT_TRUE(found->is_array()) << path + "." + field;
+    for (std::size_t index = 0; index < found->size(); ++index)
+    {
+        const auto &child = found->at(index);
+        ASSERT_TRUE(child.is_object()) << path + "." + field + "[" + std::to_string(index) + "]";
+        check_schema_descriptions(child, path + "." + field + "[" + std::to_string(index) + "]");
+    }
+}
+
+void check_schema_object(const Json &schema, const std::string &field, const std::string &path)
+{
+    const auto found = schema.find(field);
+    if (found == schema.end() || found->is_boolean())
+    {
+        return;
+    }
+
+    ASSERT_TRUE(found->is_object()) << path + "." + field;
+    check_schema_descriptions(*found, path + "." + field);
+}
+
+void check_schema_descriptions(const Json &schema, const std::string &path)
+{
+    assert_description(schema, path);
+    check_schema_map(schema, "properties", path);
+    check_schema_map(schema, "$defs", path);
+    check_schema_object(schema, "items", path);
+    check_schema_object(schema, "additionalProperties", path);
+    check_schema_array(schema, "allOf", path);
+    check_schema_array(schema, "anyOf", path);
+    check_schema_array(schema, "oneOf", path);
+}
+
+} // namespace
+
 TEST(ParBeatDownCore, trackerLibraryVersion)
 {
     ASSERT_NE(0U, par_beatdown::tracker_library_version());
+}
+
+TEST(ParBeatDownCore, jsonSchemasHaveDescriptions)
+{
+    const auto schema_dir = std::filesystem::path{PAR_BEATDOWN_SOURCE_DIR} / "schemas";
+    const std::vector<std::string> schema_files{"tracker-timeline.schema.json", "beat-keys.schema.json",
+        "beat-keys-overlay.schema.json", "beat-keys-merged-animation.schema.json"};
+
+    for (const auto &schema_file : schema_files)
+    {
+        const auto path = schema_dir / schema_file;
+        const auto schema = read_json_file(path);
+        ASSERT_EQ("https://json-schema.org/draft/2020-12/schema", schema.at("$schema").get<std::string>())
+            << schema_file;
+        ASSERT_TRUE(schema.at("$id").is_string()) << schema_file;
+        ASSERT_TRUE(schema.at("title").is_string()) << schema_file;
+        check_schema_descriptions(schema, schema_file);
+    }
 }
 
 TEST(ParBeatDownCore, trackerTimelineSchemaShell)

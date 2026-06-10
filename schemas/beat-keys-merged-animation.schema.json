@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://legalize.github.io/par-beatdown/schemas/beat-keys-merged-animation.schema.json",
+  "title": "beat-keys merged animation output",
+  "description": "ParAnimator-style animation JSON after beat-keys appends generated music tracks.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "tracks"
+  ],
+  "properties": {
+    "$schema": {
+      "description": "Optional upstream ParAnimator JSON Schema URI.",
+      "type": "string"
+    },
+    "tracks": {
+      "description": "Authored and generated animation tracks.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/track",
+        "description": "One authored or generated animation track."
+      }
+    }
+  },
+  "$defs": {
+    "track": {
+      "description": "Authored or generated animation track.",
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "parameter",
+        "keys"
+      ],
+      "properties": {
+        "id": {
+          "description": "Optional track identifier.",
+          "type": "string"
+        },
+        "parameter": {
+          "description": "Animation parameter controlled by the track.",
+          "type": "string"
+        },
+        "source": {
+          "description": "Music source for a beat-keys-generated track.",
+          "type": "string",
+          "enum": [
+            "music.rms",
+            "music.peak",
+            "music.note_pulse",
+            "music.effect_pulse",
+            "music.row_pulse"
+          ]
+        },
+        "op": {
+          "description": "Composition operation for a generated track.",
+          "type": "string",
+          "enum": [
+            "add",
+            "multiply",
+            "replace"
+          ]
+        },
+        "keys": {
+          "description": "Ordered keyframes for this animation track.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/key",
+            "description": "One animation keyframe."
+          }
+        }
+      }
+    },
+    "key": {
+      "description": "Animation keyframe in a merged output track.",
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "frame",
+        "value"
+      ],
+      "properties": {
+        "frame": {
+          "description": "Animation frame for the keyframe.",
+          "type": "integer"
+        },
+        "value": {
+          "description": "Authored or generated keyframe value.",
+          "type": [
+            "number",
+            "string",
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

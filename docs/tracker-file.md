@@ -97,6 +97,12 @@ Current include sections:
 
 ## Schema V1
 
+The formal JSON Schema is:
+
+```
+schemas/tracker-timeline.schema.json
+```
+
 Human-readable schema:
 
 ```

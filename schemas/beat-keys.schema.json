@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://legalize.github.io/par-beatdown/schemas/beat-keys.schema.json",
+  "title": "beat-keys adapter config",
+  "description": "Adapter configuration consumed by beat-keys to map music timeline data to animation targets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "version",
+    "source",
+    "output",
+    "bindings"
+  ],
+  "properties": {
+    "schema": {
+      "description": "Schema identifier for a beat-keys adapter config.",
+      "const": "par-beatdown.beat-keys"
+    },
+    "version": {
+      "description": "Integer schema version for the adapter config.",
+      "const": 1
+    },
+    "source": {
+      "$ref": "#/$defs/source",
+      "description": "Timeline input and sync settings."
+    },
+    "output": {
+      "$ref": "#/$defs/output",
+      "description": "Shape and namespace for generated output."
+    },
+    "bindings": {
+      "description": "Music source to animation target mappings.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/binding",
+        "description": "One music source to animation target mapping."
+      }
+    }
+  },
+  "$defs": {
+    "source": {
+      "description": "Timeline input and sync settings.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timeline",
+        "fps",
+        "offset_seconds"
+      ],
+      "properties": {
+        "timeline": {
+          "description": "Path to the par-beatdown tracker timeline JSON.",
+          "type": "string"
+        },
+        "fps": {
+          "description": "Animation frame rate for generated keyframes.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "offset_seconds": {
+          "description": "Timeline offset intended for frame conversion.",
+          "type": "number"
+        }
+      }
+    },
+    "output": {
+      "description": "Output mode and generated track namespace.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "namespace"
+      ],
+      "properties": {
+        "mode": {
+          "description": "Output shape written by beat-keys.",
+          "type": "string",
+          "enum": [
+            "overlay",
+            "merge"
+          ]
+        },
+        "namespace": {
+          "description": "Prefix for generated track identifiers.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "binding": {
+      "description": "Music source to animation target mapping.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "target",
+        "op"
+      ],
+      "properties": {
+        "source": {
+          "description": "Named music source to sample.",
+          "type": "string",
+          "enum": [
+            "music.rms",
+            "music.peak",
+            "music.note_pulse",
+            "music.effect_pulse",
+            "music.row_pulse"
+          ]
+        },
+        "target": {
+          "description": "Animation parameter to receive generated values.",
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "description": "Composition operation for the generated value.",
+          "type": "string",
+          "enum": [
+            "add",
+            "multiply",
+            "replace"
+          ]
+        },
+        "scale": {
+          "description": "Multiplier applied to the sampled music value.",
+          "type": "number"
+        },
+        "offset": {
+          "description": "Constant added after scaling.",
+          "type": "number"
+        },
+        "smooth_seconds": {
+          "description": "Requested smoothing time for continuous sources.",
+          "type": "number",
+          "minimum": 0
+        },
+        "decay_seconds": {
+          "description": "Decay time for sparse event pulse sources.",
+          "type": "number",
+          "minimum": 0
+        },
+        "clamp": {
+          "$ref": "#/$defs/clamp",
+          "description": "Optional lower and upper bound for generated values."
+        }
+      }
+    },
+    "clamp": {
+      "description": "Lower and upper bound for generated values.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "min",
+        "max"
+      ],
+      "properties": {
+        "min": {
+          "description": "Minimum allowed generated value.",
+          "type": "number"
+        },
+        "max": {
+          "description": "Maximum allowed generated value.",
+          "type": "number"
+        }
+      }
+    }
+  }
+}

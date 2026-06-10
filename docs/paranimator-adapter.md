@@ -51,6 +51,12 @@ format should be confirmed against ParAnimator before implementation.
 
 ## Adapter Config Schema V1
 
+The formal JSON Schema is:
+
+```
+schemas/beat-keys.schema.json
+```
+
 Human-readable schema:
 
 ```
@@ -156,6 +162,19 @@ music.row_pulse
 `max` is the maximum generated value.
 
 ## Generated Overlay Schema V1
+
+The formal JSON Schema is:
+
+```
+schemas/beat-keys-overlay.schema.json
+```
+
+Merge mode writes a ParAnimator-style config with generated tracks.  The
+schema for the beat-keys-owned parts of that output is:
+
+```
+schemas/beat-keys-merged-animation.schema.json
+```
 
 Human-readable schema:
 

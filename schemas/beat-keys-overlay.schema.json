@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://legalize.github.io/par-beatdown/schemas/beat-keys-overlay.schema.json",
+  "title": "beat-keys overlay output",
+  "description": "Generated beat-keys overlay JSON containing music-derived keyframes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "version",
+    "generator",
+    "source",
+    "keyframes",
+    "diagnostics"
+  ],
+  "properties": {
+    "schema": {
+      "description": "Schema identifier for a beat-keys overlay output.",
+      "const": "par-beatdown.beat-keys-overlay"
+    },
+    "version": {
+      "description": "Integer schema version for the overlay output.",
+      "const": 1
+    },
+    "generator": {
+      "$ref": "#/$defs/generator",
+      "description": "Tool metadata for the generated overlay."
+    },
+    "source": {
+      "$ref": "#/$defs/source",
+      "description": "Input files used to generate the overlay."
+    },
+    "keyframes": {
+      "description": "Generated music-derived keyframe operations.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/keyframe",
+        "description": "One generated keyframe operation."
+      }
+    },
+    "diagnostics": {
+      "$ref": "#/$defs/diagnostics",
+      "description": "Warnings emitted while generating the overlay."
+    }
+  },
+  "$defs": {
+    "generator": {
+      "description": "Tool metadata for the generated overlay.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "description": "Name of the program that generated the overlay.",
+          "type": "string",
+          "const": "beat-keys"
+        },
+        "version": {
+          "description": "Version string of the generating program.",
+          "type": "string"
+        }
+      }
+    },
+    "source": {
+      "description": "Input files used to generate the overlay.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "base_animation",
+        "timeline",
+        "adapter_config"
+      ],
+      "properties": {
+        "base_animation": {
+          "description": "Path to the base animation JSON input.",
+          "type": "string"
+        },
+        "timeline": {
+          "description": "Path to the music timeline JSON input.",
+          "type": "string"
+        },
+        "adapter_config": {
+          "description": "Path to the beat-keys adapter config input.",
+          "type": "string"
+        }
+      }
+    },
+    "keyframe": {
+      "description": "Generated music-derived keyframe operation.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "frame",
+        "target",
+        "op",
+        "value",
+        "source"
+      ],
+      "properties": {
+        "frame": {
+          "description": "Animation frame for the generated keyframe.",
+          "type": "integer"
+        },
+        "target": {
+          "description": "Animation parameter affected by the keyframe.",
+          "type": "string"
+        },
+        "op": {
+          "description": "Composition operation for the generated value.",
+          "type": "string",
+          "enum": [
+            "add",
+            "multiply",
+            "replace"
+          ]
+        },
+        "value": {
+          "description": "Generated value after mapping and shaping.",
+          "type": "number"
+        },
+        "source": {
+          "description": "Music source that generated this keyframe.",
+          "type": "string",
+          "enum": [
+            "music.rms",
+            "music.peak",
+            "music.note_pulse",
+            "music.effect_pulse",
+            "music.row_pulse"
+          ]
+        }
+      }
+    },
+    "diagnostics": {
+      "description": "Warnings emitted while generating the overlay.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "warnings"
+      ],
+      "properties": {
+        "warnings": {
+          "description": "Non-fatal warning messages.",
+          "type": "array",
+          "items": {
+            "description": "One non-fatal warning message.",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
