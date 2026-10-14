@@ -28,7 +28,25 @@ struct ToolOptions
     std::string timeline;
     std::string adapter_config;
     std::string output;
+    bool show_help{false};
 };
+
+void print_usage(std::ostream &output)
+{
+    output << "Usage: beat-keys <base-animation> <timeline> <adapter-config>\n"
+              "                 -o <output>\n"
+              "\n"
+              "Generate animation keyframes from a par-beatdown timeline.\n"
+              "\n"
+              "Arguments:\n"
+              "  <base-animation>  Base ParAnimator-style JSON config.\n"
+              "  <timeline>        par-beatdown timeline JSON.\n"
+              "  <adapter-config>  beat-keys mapping config.\n"
+              "\n"
+              "Options:\n"
+              "  -o <path>          Write generated animation JSON to <path>.\n"
+              "  -h, --help         Show this help.\n";
+}
 
 enum class BindingSource
 {
@@ -87,6 +105,13 @@ ToolOptions parse_options(int argc, char *argv[])
     {
         throw std::runtime_error{"missing base animation path"};
     }
+
+    const std::string first_argument{argv[1]};
+    if (first_argument == "-h" || first_argument == "--help")
+    {
+        options.show_help = true;
+        return options;
+    }
     if (argc < 3)
     {
         throw std::runtime_error{"missing timeline path"};
@@ -96,7 +121,7 @@ ToolOptions parse_options(int argc, char *argv[])
         throw std::runtime_error{"missing adapter config path"};
     }
 
-    options.base_animation = argv[1];
+    options.base_animation = first_argument;
     options.timeline = argv[2];
     options.adapter_config = argv[3];
     for (int index = 4; index < argc; ++index)
@@ -736,6 +761,12 @@ Json make_output(const ToolOptions &options, const Json &base, const Json &timel
 
 int write_overlay(const ToolOptions &options)
 {
+    if (options.show_help)
+    {
+        print_usage(std::cout);
+        return 0;
+    }
+
     const auto base = read_json_file(options.base_animation, "base animation");
     const auto timeline = read_json_file(options.timeline, "timeline");
     const auto config = read_json_file(options.adapter_config, "adapter config");

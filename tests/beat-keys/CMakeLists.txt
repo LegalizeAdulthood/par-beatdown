@@ -99,6 +99,13 @@ add_beat_keys_merge_test(merge-event-overlay
     EXPECTED_TRACK_COUNT 2
     TIMELINE tests/beat-keys/timeline-events.json)
 
+add_test(NAME beat-keys.show-help
+    COMMAND beat-keys -h)
+set_tests_properties(beat-keys.show-help PROPERTIES
+    LABELS beat-keys
+    PASS_REGULAR_EXPRESSION
+        "Usage: beat-keys <base-animation> <timeline> <adapter-config>")
+
 add_beat_keys_error_test(fail-missing-base-animation-path
     "missing base animation path")
 add_beat_keys_error_test(fail-missing-timeline-path
