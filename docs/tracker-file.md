@@ -40,7 +40,7 @@ Current command form:
 
 ```
 par-beatdown song.xm -o song.music.json
-    [--include source|module|timeline|events|features]
+    [--include source,module,timeline,events,features]
     [--fps 30] [--offset 0]
     [--start 0] [--duration 10]
     [--feature-hop 0.0333333333]
@@ -70,7 +70,9 @@ Tool integration tests live under `tests/par-beatdown`.
 Rules:
 
 * keep global fields present in every output
-* use `--include <section>` to choose non-global JSON sections
+* omit `--include` to write every JSON section
+* use `--include <sections>` with a comma-separated list to choose
+  non-global JSON sections
 * add one `gold-<test-case>.json` per integration use case
 * do not grow old gold files when a later slice adds a new section
 * run field checks before comparing generated output to gold JSON

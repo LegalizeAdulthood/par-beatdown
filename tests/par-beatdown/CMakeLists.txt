@@ -62,6 +62,31 @@ if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
     add_par_beatdown_gold_test(write-windowed-features features
         START 1.0 DURATION 2.0 FEATURE_HOP 0.5)
 
+    add_test(NAME par-beatdown.write-default-output
+        COMMAND ${CMAKE_COMMAND}
+            -DPAR_BEATDOWN_TOOL=$<TARGET_FILE:par-beatdown>
+            -DPAR_BEATDOWN_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+            -DPAR_BEATDOWN_INPUT=data/my_neighbors_kid_is_an_internet_addict.xm
+            -DPAR_BEATDOWN_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/default-output.actual.json
+            -DPAR_BEATDOWN_DURATION=2
+            -DPAR_BEATDOWN_VALIDATE_COMPLETE=ON
+            -P ${CMAKE_CURRENT_LIST_DIR}/ValidateTrackerTimeline.cmake)
+    set_tests_properties(par-beatdown.write-default-output PROPERTIES
+        LABELS par-beatdown)
+
+    add_test(NAME par-beatdown.write-selected-output
+        COMMAND ${CMAKE_COMMAND}
+            -DPAR_BEATDOWN_TOOL=$<TARGET_FILE:par-beatdown>
+            -DPAR_BEATDOWN_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+            -DPAR_BEATDOWN_INPUT=data/my_neighbors_kid_is_an_internet_addict.xm
+            -DPAR_BEATDOWN_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/selected-output.actual.json
+            -DPAR_BEATDOWN_INCLUDE=module,timeline,events,features
+            -DPAR_BEATDOWN_DURATION=2
+            -DPAR_BEATDOWN_VALIDATE_COMPLETE=ON
+            -P ${CMAKE_CURRENT_LIST_DIR}/ValidateTrackerTimeline.cmake)
+    set_tests_properties(par-beatdown.write-selected-output PROPERTIES
+        LABELS par-beatdown)
+
     add_test(NAME par-beatdown.show-help
         COMMAND par-beatdown --help)
     set_tests_properties(par-beatdown.show-help PROPERTIES
@@ -104,4 +129,10 @@ if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
             data/my_neighbors_kid_is_an_internet_addict.xm
             -o ${CMAKE_CURRENT_BINARY_DIR}/invalid-duration.actual.json
             --duration 0)
+    add_par_beatdown_error_test(fail-empty-include-section
+        "empty include section"
+        ARGUMENTS
+            data/my_neighbors_kid_is_an_internet_addict.xm
+            -o ${CMAKE_CURRENT_BINARY_DIR}/empty-include.actual.json
+            --include module,,timeline)
 endif()

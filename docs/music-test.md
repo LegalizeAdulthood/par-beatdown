@@ -75,10 +75,6 @@ Generate one small timeline window with every optional section enabled:
 & $parBeatdown `
   data\my_neighbors_kid_is_an_internet_addict.xm `
   -o C:\tmp\song.music.json `
-  --include module `
-  --include timeline `
-  --include events `
-  --include features `
   --start 0 `
   --duration 20
 ```
@@ -126,9 +122,7 @@ If the first 20 seconds are not visually useful, move the window:
 & $parBeatdown `
   data\my_neighbors_kid_is_an_internet_addict.xm `
   -o C:\tmp\song-later.music.json `
-  --include timeline `
-  --include events `
-  --include features `
+  --include timeline,events,features `
   --start 45 `
   --duration 20
 ```
@@ -242,8 +236,7 @@ Generate a lower-density feature timeline:
 & $parBeatdown `
   data\my_neighbors_kid_is_an_internet_addict.xm `
   -o C:\tmp\song-hop-0_5.music.json `
-  --include timeline `
-  --include features `
+  --include timeline,features `
   --start 0 `
   --duration 20 `
   --feature-hop 0.5
@@ -273,9 +266,7 @@ Generate a shifted source timeline:
 & $parBeatdown `
   data\my_neighbors_kid_is_an_internet_addict.xm `
   -o C:\tmp\song-offset.music.json `
-  --include timeline `
-  --include events `
-  --include features `
+  --include timeline,events,features `
   --start 0 `
   --duration 20 `
   --offset 1.25

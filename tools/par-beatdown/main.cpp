@@ -29,11 +29,12 @@ void print_usage(std::ostream &output)
     output << "Usage: par-beatdown <input> -o <output> [options]\n"
               "\n"
               "Create a neutral JSON timeline from a tracker music file.\n"
+              "All output sections are included by default.\n"
               "\n"
               "Options:\n"
               "  -o <path>             Write the JSON timeline to <path>.\n"
-              "  --include <section>   Include source, module, timeline, events, or\n"
-              "                        features. May be specified more than once.\n"
+              "  --include <sections>  Select a comma-separated list containing\n"
+              "                        source, module, timeline, events, or features.\n"
               "  --fps <value>         Set timeline frames per second.\n"
               "  --offset <seconds>    Add a synchronization offset.\n"
               "  --start <seconds>     Start output at the source time.\n"
@@ -133,9 +134,32 @@ void add_include(ToolOptions &options, const std::string &name)
     throw std::runtime_error{"unknown include section: " + name};
 }
 
+void add_includes(ToolOptions &options, const std::string &names)
+{
+    std::size_t begin = 0;
+    while (begin <= names.size())
+    {
+        const auto end = names.find(',', begin);
+        const auto name = names.substr(begin, end - begin);
+        if (name.empty())
+        {
+            throw std::runtime_error{"empty include section"};
+        }
+        add_include(options, name);
+        if (end == std::string::npos)
+        {
+            return;
+        }
+        begin = end + 1;
+    }
+}
+
 ToolOptions parse_options(int argc, char *argv[])
 {
     ToolOptions options;
+    options.settings.include_timeline = true;
+    options.settings.include_pattern_events = true;
+    options.settings.include_features = true;
     if (argc < 2)
     {
         throw std::runtime_error{"missing input path"};
@@ -158,7 +182,7 @@ ToolOptions parse_options(int argc, char *argv[])
         }
         else if (argument == "--include")
         {
-            add_include(options, require_value(index, argc, argv, "--include"));
+            add_includes(options, require_value(index, argc, argv, "--include"));
         }
         else if (argument == "--fps")
         {

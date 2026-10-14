@@ -4,12 +4,16 @@ foreach(required_name IN ITEMS
         PAR_BEATDOWN_TOOL
         PAR_BEATDOWN_SOURCE_DIR
         PAR_BEATDOWN_INPUT
-        PAR_BEATDOWN_EXPECTED
         PAR_BEATDOWN_OUTPUT)
     if(NOT DEFINED ${required_name})
         message(FATAL_ERROR "missing ${required_name}")
     endif()
 endforeach()
+
+if(NOT PAR_BEATDOWN_VALIDATE_COMPLETE
+        AND NOT DEFINED PAR_BEATDOWN_EXPECTED)
+    message(FATAL_ERROR "missing PAR_BEATDOWN_EXPECTED")
+endif()
 
 set(command_arguments "${PAR_BEATDOWN_INPUT}" -o "${PAR_BEATDOWN_OUTPUT}")
 if(DEFINED PAR_BEATDOWN_INCLUDE)
@@ -45,10 +49,12 @@ if(NOT result EQUAL 0)
         "par-beatdown failed: ${result}\nstdout:\n${stdout}\nstderr:\n${stderr}")
 endif()
 
-file(READ "${PAR_BEATDOWN_EXPECTED}" expected)
 file(READ "${PAR_BEATDOWN_OUTPUT}" actual)
-string(REPLACE "\r\n" "\n" expected "${expected}")
 string(REPLACE "\r\n" "\n" actual "${actual}")
+if(NOT PAR_BEATDOWN_VALIDATE_COMPLETE)
+    file(READ "${PAR_BEATDOWN_EXPECTED}" expected)
+    string(REPLACE "\r\n" "\n" expected "${expected}")
+endif()
 
 function(fail_field_check field message)
     message(FATAL_ERROR "field check failed: ${field}: ${message}")
@@ -101,9 +107,28 @@ function(assert_json_array_not_empty field)
     endif()
 endfunction()
 
+function(assert_event_kind_present expected_kind)
+    json_array_length(event_count "events" events)
+    if(NOT event_count GREATER 0)
+        fail_field_check("events" "expected ${expected_kind} event")
+    endif()
+
+    math(EXPR last_event_index "${event_count} - 1")
+    foreach(event_index RANGE 0 ${last_event_index})
+        json_get_value(event_kind "events[${event_index}].kind"
+            events ${event_index} kind)
+        if(event_kind STREQUAL expected_kind)
+            return()
+        endif()
+    endforeach()
+    fail_field_check("events" "expected ${expected_kind} event")
+endfunction()
+
 function(has_include output include_name)
     set(found FALSE)
-    if(DEFINED PAR_BEATDOWN_INCLUDE)
+    if(PAR_BEATDOWN_VALIDATE_COMPLETE)
+        set(found TRUE)
+    elseif(DEFINED PAR_BEATDOWN_INCLUDE)
         list(FIND PAR_BEATDOWN_INCLUDE "${include_name}" include_index)
         if(NOT include_index EQUAL -1)
             set(found TRUE)
@@ -167,7 +192,11 @@ endif()
 has_include(has_events events)
 if(has_events)
     assert_json_array_not_empty("events" events)
-    assert_json_equal("events[0].kind" "note" events 0 kind)
+    if(PAR_BEATDOWN_VALIDATE_COMPLETE)
+        assert_event_kind_present("note")
+    else()
+        assert_json_equal("events[0].kind" "note" events 0 kind)
+    endif()
 endif()
 
 has_include(has_features features)
@@ -183,7 +212,7 @@ if(has_features)
         features 0 channel_vu_mono)
 endif()
 
-if(NOT expected STREQUAL actual)
+if(NOT PAR_BEATDOWN_VALIDATE_COMPLETE AND NOT expected STREQUAL actual)
     message(FATAL_ERROR
         "tracker timeline output differs from gold JSON\n"
         "expected: ${PAR_BEATDOWN_EXPECTED}\n"
