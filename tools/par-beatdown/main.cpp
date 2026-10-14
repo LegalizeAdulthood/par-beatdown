@@ -232,7 +232,7 @@ int write_timeline(const ToolOptions &options)
         throw std::runtime_error{"missing output path"};
     }
 
-    std::ofstream output{options.output, std::ios::binary};
+    std::ofstream output{options.output};
     if (!output)
     {
         throw std::runtime_error{"could not open output file: " + options.output};

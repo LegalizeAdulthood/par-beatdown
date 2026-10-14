@@ -146,7 +146,7 @@ ToolOptions parse_options(int argc, char *argv[])
 
 Json read_json_file(const std::string &path, const std::string &label)
 {
-    std::ifstream input{path, std::ios::binary};
+    std::ifstream input{path};
     if (!input)
     {
         throw std::runtime_error{"could not open " + label + ": " + path};
@@ -772,7 +772,7 @@ int write_overlay(const ToolOptions &options)
     const auto config = read_json_file(options.adapter_config, "adapter config");
     validate_adapter_config(config);
 
-    std::ofstream output{options.output, std::ios::binary};
+    std::ofstream output{options.output};
     if (!output)
     {
         throw std::runtime_error{"could not open output file: " + options.output};
