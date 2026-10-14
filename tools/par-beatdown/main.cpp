@@ -21,7 +21,26 @@ struct ToolOptions
     std::string output;
     par_beatdown::TrackerTimelineSettings settings;
     bool include_filter_seen{false};
+    bool show_help{false};
 };
+
+void print_usage(std::ostream &output)
+{
+    output << "Usage: par-beatdown <input> -o <output> [options]\n"
+              "\n"
+              "Create a neutral JSON timeline from a tracker music file.\n"
+              "\n"
+              "Options:\n"
+              "  -o <path>             Write the JSON timeline to <path>.\n"
+              "  --include <section>   Include source, module, timeline, events, or\n"
+              "                        features. May be specified more than once.\n"
+              "  --fps <value>         Set timeline frames per second.\n"
+              "  --offset <seconds>    Add a synchronization offset.\n"
+              "  --start <seconds>     Start output at the source time.\n"
+              "  --duration <seconds>  Limit the output duration.\n"
+              "  --feature-hop <secs>  Set the feature sampling interval.\n"
+              "  -h, --help            Show this help.\n";
+}
 
 std::string require_value(int &index, int argc, char *argv[], const std::string &option)
 {
@@ -122,7 +141,14 @@ ToolOptions parse_options(int argc, char *argv[])
         throw std::runtime_error{"missing input path"};
     }
 
-    options.input = argv[1];
+    const std::string first_argument{argv[1]};
+    if (first_argument == "-h" || first_argument == "--help")
+    {
+        options.show_help = true;
+        return options;
+    }
+
+    options.input = first_argument;
     for (int index = 2; index < argc; ++index)
     {
         const std::string argument{argv[index]};
@@ -168,6 +194,11 @@ ToolOptions parse_options(int argc, char *argv[])
 
 int write_timeline(const ToolOptions &options)
 {
+    if (options.show_help)
+    {
+        print_usage(std::cout);
+        return 0;
+    }
     if (options.input.empty())
     {
         throw std::runtime_error{"missing input path"};

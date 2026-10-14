@@ -62,6 +62,13 @@ if(PAR_BEATDOWN_ENABLE_TRACKER_FILE)
     add_par_beatdown_gold_test(write-windowed-features features
         START 1.0 DURATION 2.0 FEATURE_HOP 0.5)
 
+    add_test(NAME par-beatdown.show-help
+        COMMAND par-beatdown --help)
+    set_tests_properties(par-beatdown.show-help PROPERTIES
+        LABELS par-beatdown
+        PASS_REGULAR_EXPRESSION
+            "Usage: par-beatdown <input> -o <output> [[]options[]]")
+
     add_par_beatdown_error_test(fail-missing-input-path
         "missing input path")
     add_par_beatdown_error_test(fail-missing-input-file
